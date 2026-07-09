@@ -277,7 +277,7 @@ nav button.aktiv{color:var(--amber);}
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V14';
+const APP_REVISION = 'V15';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -450,6 +450,8 @@ let aktuellerScreen = 'start';
 let ansichtBesuch = null; // der Besuch der gerade nur angeschaut wird
 let ansichtMangel = null; // der Mangel der gerade nur angeschaut wird
 let mangelAnsichtHerkunft = 'logbuch'; // wohin der Zurück Knopf fuehrt, logbuch oder auswertungen
+let mangelBearbeitenAktiv = false; // true, wenn gerade ein bestehender Mangel bearbeitet statt neu angelegt wird
+let mangelBearbeitenHerkunft = 'start'; // wohin es nach dem Speichern oder Abbrechen der Bearbeitung zurueckgeht
 const MANGEL_KATEGORIEN = ['Tiefbau','Montage','Dokumentation'];
 const MANGEL_FARBEN = {'Tiefbau':'#4DA3FF','Montage':'#FF8A3D','Dokumentation':'#3FB966'};
 
@@ -460,6 +462,7 @@ const AUSWAHL_KONTEXT = {
   besuchPruefer:   { liste:'pruefer',    setzen:w=>{besuch.pruefer=w;},       neuZeichnen:()=>zeichneProjekt() },
   mangelFirma:     { liste:'firmen',     setzen:w=>{mangelEntwurf.firma=w;},     neuZeichnen:()=>zeichneMangel() },
   mangelKategorie: { liste:'kategorien', setzen:w=>{mangelEntwurf.kategorie=w;}, neuZeichnen:()=>zeichneMangel() },
+  mangelEintrager: { liste:'pruefer',    setzen:w=>{mangelEntwurf.eintrager=w;}, neuZeichnen:()=>zeichneMangel() },
 };
 function auswahlMitNeuHtml(kontextName, liste, aktuellerWert){
   return `
@@ -519,7 +522,7 @@ function leererBesuch(){
     strasse:'', ort:'', lat:null, lng:null, antworten:{}, gespeichertAm:null };
 }
 function leererMangel(){
-  return { id:neueId(), kategorie:'', firma:'', kommentar:'', fotos:[],
+  return { id:neueId(), kategorie:'', firma:'', eintrager:'', kommentar:'', fotos:[],
     strasse:'', ort:'', lat:null, lng:null, datum:heute(), gespeichertAm:null };
 }
 
@@ -846,9 +849,26 @@ function weiterZuFragen(){
    ===================================================== */
 function neuerMangel(){
   mangelEntwurf = leererMangel();
+  mangelBearbeitenAktiv = false;
   aktuellerOrtZiel = mangelEntwurf;
   standortTab = 'adresse';
   zeige('mangel');
+}
+
+// laedt einen bestehenden Mangel zurueck ins Formular, wie das Bearbeiten eines Besuchs,
+// beim Speichern wird dann derselbe Eintrag ueberschrieben statt ein neuer angelegt
+function mangelBearbeiten(){
+  mangelEntwurf = JSON.parse(JSON.stringify(ansichtMangel));
+  mangelBearbeitenAktiv = true;
+  mangelBearbeitenHerkunft = mangelAnsichtHerkunft;
+  aktuellerOrtZiel = mangelEntwurf;
+  standortTab = 'adresse';
+  zeige('mangel');
+}
+function mangelFormAbbrechen(){
+  mangelEntwurf = null;
+  zeige(mangelBearbeitenAktiv ? mangelBearbeitenHerkunft : 'start');
+  mangelBearbeitenAktiv = false;
 }
 
 function zeichneMangel(){
@@ -873,6 +893,8 @@ function zeichneMangel(){
     </div>
     <div class="karte-box">
       <div class="eyebrow">Angaben</div>
+      <label>Eintragung durch, Pflichtfeld</label>
+      ${auswahlMitNeuHtml('mangelEintrager', stammdaten.pruefer, m.eintrager)}
       <label>Kategorie</label>
       ${auswahlMitNeuHtml('mangelKategorie', stammdaten.kategorien, m.kategorie)}
       <label>Tiefbaufirma, Pflichtfeld</label>
@@ -904,8 +926,8 @@ function zeichneMangel(){
       <div class="gps-anzeige" id="koordAnzeige"></div>
     </div>
     <div class="btn-reihe">
-      <button class="btn btn-leise" onclick="zeige('start')">Abbrechen</button>
-      <button class="btn btn-amber" onclick="mangelSpeichern()">Mangel speichern</button>
+      <button class="btn btn-leise" onclick="mangelFormAbbrechen()">Abbrechen</button>
+      <button class="btn btn-amber" onclick="mangelSpeichern()">${mangelBearbeitenAktiv ? 'Änderung speichern' : 'Mangel speichern'}</button>
     </div>`;
   standortWechsel(standortTab);
   koordAnzeigen();
@@ -913,9 +935,13 @@ function zeichneMangel(){
 
 async function mangelSpeichern(){
   const m = mangelEntwurf;
+  if(!m.eintrager){ meldung('Bitte angeben, wer den Mangel einträgt'); return; }
   if(!m.firma){ meldung('Bitte eine Tiefbaufirma wählen'); return; }
   const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
   if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
+  // beim Bearbeiten kann es vorher schon Fotos gegeben haben, die jetzt entfernt wurden,
+  // die dann verwaisten alten Fotodokumente werden gleich mit aufgeraeumt
+  const vorherigeFotoAnzahl = (mangelIndex.find(e=>e.id===m.id) || {}).fotoAnzahl || 0;
   m.gespeichertAm = new Date().toISOString();
   const fotos = m.fotos || [];
   // jedes Foto einzeln speichern, sonst wird ein Mangel mit mehreren Fotos schnell
@@ -923,17 +949,22 @@ async function mangelSpeichern(){
   for(let i=0; i<fotos.length; i++){
     await speicherSetzen('mangelfoto:'+m.id+':'+i, {daten:fotos[i]});
   }
+  for(let i=fotos.length; i<vorherigeFotoAnzahl; i++){
+    await speicherLoeschen('mangelfoto:'+m.id+':'+i);
+  }
   const mangelZumSpeichern = {...m, fotos:undefined, fotoAnzahl:fotos.length};
   delete mangelZumSpeichern.fotos;
   await speicherSetzen('mangel:'+m.id, mangelZumSpeichern);
-  const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, datum:m.datum,
+  const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, eintrager:m.eintrager, datum:m.datum,
     strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
     fotoAnzahl:fotos.length};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
-  meldung('Mangel wurde gespeichert');
+  meldung(mangelBearbeitenAktiv ? 'Änderung wurde gespeichert' : 'Mangel wurde gespeichert');
   mangelEntwurf = null;
-  zeige('start');
+  const ziel = mangelBearbeitenAktiv ? mangelBearbeitenHerkunft : 'start';
+  mangelBearbeitenAktiv = false;
+  zeige(ziel);
 }
 
 /* =====================================================
@@ -1157,6 +1188,7 @@ function zeichneLogbuch(){
       <button id="logTabBesuche" onclick="logTypWechsel('besuche')">Besuche</button>
       <button id="logTabMaengel" onclick="logTypWechsel('maengel')">Mängel</button>
     </div>
+    <button class="btn btn-leise" style="margin-bottom:14px" onclick="geloeschteExportieren()">Gelöschte Einträge als CSV</button>
     <div id="logbuchInhalt"></div>`;
   ['logTabAlle','logTabBesuche','logTabMaengel'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
   document.getElementById('logTab'+logTyp.charAt(0).toUpperCase()+logTyp.slice(1)).classList.add('aktiv');
@@ -1208,7 +1240,7 @@ function zeichneLogbuchAlle(){
         <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kategorie||'Mangel')} <span style="color:var(--sicher);font-size:10px;font-weight:700;letter-spacing:.5px;margin-left:6px">MANGEL</span></div>
-          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}</div>
         </div>
       </button>`).join('') : '<div class="leer-hinweis">Kein Eintrag passt zu diesen Filtern</div>'}`;
 }
@@ -1322,7 +1354,7 @@ function zeichneLogbuchMaengel(){
         <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kategorie||'ohne Kategorie')}</div>
-          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}</div>
         </div>
       </button>`).join('') : '<div class="leer-hinweis">Kein Mangel passt zu diesen Filtern</div>'}`;
 }
@@ -1360,7 +1392,7 @@ async function maengellisteDrucken(){
     </table>`;
   volle.forEach((m,i)=>{
     html += `<div class="druck-frage">
-      <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
+      <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}</div>
       ${(m.strasse||m.ort) ? `<div class="druck-kommentar">Ort, ${esc([m.strasse,m.ort].filter(Boolean).join(', '))}</div>` : ''}
       ${m.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(m.kommentar)}</div>` : ''}
       ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:5px">
@@ -1417,6 +1449,45 @@ function csvFeld(wert){
   wert = String(wert ?? '');
   if(/[;"\n]/.test(wert)) wert = '"' + wert.replace(/"/g,'""') + '"';
   return wert;
+}
+
+// baut aus allen jemals geloeschten Besuchen und Maengeln eine CSV Liste, unabhaengig
+// vom gerade eingestellten Reiter oder Filter, so bleibt jede Loeschung dauerhaft
+// nachvollziehbar und laesst sich jederzeit herunterladen, auch lange danach
+async function geloeschteExportieren(){
+  meldung('Export wird vorbereitet');
+  const schluessel = await speicherListe('geloescht:');
+  if(!schluessel.length){ meldung('Bisher wurde noch nichts gelöscht'); return; }
+  const eintraege = [];
+  for(const k of schluessel){
+    const e = await speicherHolen(k);
+    if(e) eintraege.push(e);
+  }
+  eintraege.sort((a,b)=>(b.geloeschtAm||'').localeCompare(a.geloeschtAm||''));
+  const spalten = ['Typ','Bezeichnung','Tiefbaufirma','Prüfer oder Eintragung durch',
+    'Datum','Status oder Kommentar','Ursprünglich gespeichert am','Gelöscht am'];
+  const zeilen = [spalten.join(';')];
+  for(const e of eintraege){
+    const typ = e.typ === 'mangel' ? 'Mangel' : 'Besuch';
+    const bezeichnung = e.typ === 'mangel' ? (e.kategorie||'ohne Kategorie') : (e.kennung||'');
+    const person = e.typ === 'mangel' ? (e.eintrager||'') : (e.pruefer||'');
+    const statusKommentar = e.typ === 'mangel' ? (e.kommentar||'') : (e.status||'');
+    const gespeichertText = e.gespeichertAm ? datumSchoen(e.gespeichertAm.slice(0,10))+', '+zeitSchoen(e.gespeichertAm)+' Uhr' : '';
+    const geloeschtText = e.geloeschtAm ? datumSchoen(e.geloeschtAm.slice(0,10))+', '+zeitSchoen(e.geloeschtAm)+' Uhr' : '';
+    zeilen.push([typ, bezeichnung, e.firma||'', person, e.datum||'', statusKommentar,
+      gespeichertText, geloeschtText].map(csvFeld).join(';'));
+  }
+  const inhalt = '\uFEFF' + zeilen.join('\r\n');
+  const blob = new Blob([inhalt], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Geloeschte_Eintraege_' + heute() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  meldung('Export wurde erstellt, in Dateien oder Downloads zu finden');
 }
 
 /* =====================================================
@@ -1816,7 +1887,7 @@ function zeichneMangelAnsicht(){
     <h2>${esc(m.kategorie || 'Mangel')}</h2>
     <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
       <div class="titel">${esc(m.kategorie || 'Ohne Kategorie')}</div>
-      <div class="unter">${esc(m.firma || 'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
+      <div class="unter">${esc(m.firma || 'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}</div>
     </div>
     ${(m.strasse || m.ort || (m.lat && m.lng)) ? `
     <div class="karte-box">
@@ -1834,8 +1905,9 @@ function zeichneMangelAnsicht(){
     </div>
     <div class="btn-reihe">
       <button class="btn btn-leise" onclick="zeige(mangelAnsichtHerkunft)">Zurück</button>
-      <button class="btn" onclick="mangelDrucken(ansichtMangel)">Als PDF sichern</button>
+      <button class="btn" onclick="mangelBearbeiten()">Bearbeiten</button>
     </div>
+    <button class="btn btn-amber" onclick="mangelDrucken(ansichtMangel)">Als PDF sichern</button>
     <button class="btn btn-rot" id="mangelLoeschKnopf" onclick="mangelLoeschenAnfragen()">Mangel löschen</button>`;
   if(m.lat && m.lng) setTimeout(()=>{
     const kEl = document.getElementById('mangelAnsichtKarte');
@@ -1864,14 +1936,20 @@ function mangelLoeschenAnfragen(){
     mangelLoeschen();
   }
 }
+// gleiches Prinzip wie beim Loeschen eines Besuchs, die Rohdaten wandern ins Archiv,
+// nur die Fotos werden entfernt, im Logbuch bleibt alles als CSV nachvollziehbar
 async function mangelLoeschen(){
-  for(let i=0; i<(ansichtMangel.fotoAnzahl||0); i++){
-    await speicherLoeschen('mangelfoto:'+ansichtMangel.id+':'+i);
+  const m = ansichtMangel;
+  const archivEintrag = {...m, typ:'mangel', geloeschtAm:new Date().toISOString()};
+  delete archivEintrag.fotos; // die Fotos selbst werden gleich entfernt, nur die Anzahl bleibt im Archiv
+  await speicherSetzen('geloescht:mangel:'+m.id, archivEintrag);
+  for(let i=0; i<(m.fotoAnzahl||0); i++){
+    await speicherLoeschen('mangelfoto:'+m.id+':'+i);
   }
-  await speicherLoeschen('mangel:'+ansichtMangel.id, true);
-  await speicherLoeschen('mangelindex:'+ansichtMangel.id, true);
+  await speicherLoeschen('mangel:'+m.id);
+  await speicherLoeschen('mangelindex:'+m.id);
   await mangelIndexLaden();
-  meldung('Mangel wurde gelöscht');
+  meldung('Mangel wurde gelöscht, bleibt im Logbuch als CSV nachvollziehbar');
   zeige(mangelAnsichtHerkunft);
 }
 
@@ -1882,6 +1960,7 @@ function mangelDrucken(m){
   let html = `<div class="druck-kopf">Mangel, ${esc(m.kategorie || 'ohne Kategorie')}</div>
     <table class="druck-info">
       <tr><td>Tiefbaufirma</td><td>${esc(m.firma || '–')}</td></tr>
+      <tr><td>Eintragung durch</td><td>${esc(m.eintrager || '–')}</td></tr>
       <tr><td>Datum</td><td>${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</td></tr>
       ${(m.strasse || m.ort) ? `<tr><td>Adresse</td><td>${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</td></tr>` : ''}
       ${(m.lat && m.lng) ? `<tr><td>GPS Koordinaten</td><td>${m.lat}, ${m.lng}</td></tr>` : ''}
@@ -1980,16 +2059,33 @@ function loeschenAnfragen(){
     eintragLoeschen();
   }
 }
+// Loeschen entfernt den Besuch nur aus der sichtbaren Liste, die Rohdaten wandern
+// vollstaendig in ein Archiv, nur die Fotos werden dabei entfernt um Speicher zu sparen,
+// so laesst sich im Logbuch jederzeit als CSV nachvollziehen was geloescht wurde und wann,
+// damit nichts heimlich verschwinden und in Vergessenheit geraten kann
 async function eintragLoeschen(){
-  for(const nr in ansichtBesuch.antworten){
-    if(ansichtBesuch.antworten[nr] && ansichtBesuch.antworten[nr].foto){
-      await speicherLoeschen('besuchfoto:'+ansichtBesuch.id+':'+nr, true);
+  const b = ansichtBesuch;
+  const s = statusRechnen(b);
+  const archivEintrag = JSON.parse(JSON.stringify(b));
+  for(const nr in archivEintrag.antworten){
+    if(archivEintrag.antworten[nr] && archivEintrag.antworten[nr].foto){
+      archivEintrag.antworten[nr].foto = true; // nur der Vermerk, das Bild selbst wird gleich entfernt
     }
   }
-  await speicherLoeschen('besuch:'+ansichtBesuch.id, true);
-  await speicherLoeschen('index:'+ansichtBesuch.id, true);
+  archivEintrag.typ = 'besuch';
+  archivEintrag.status = s.status;
+  archivEintrag.klasse = s.klasse;
+  archivEintrag.geloeschtAm = new Date().toISOString();
+  await speicherSetzen('geloescht:besuch:'+b.id, archivEintrag);
+  for(const nr in b.antworten){
+    if(b.antworten[nr] && b.antworten[nr].foto){
+      await speicherLoeschen('besuchfoto:'+b.id+':'+nr);
+    }
+  }
+  await speicherLoeschen('besuch:'+b.id);
+  await speicherLoeschen('index:'+b.id);
   await indexAlleLaden();
-  meldung('Eintrag wurde gelöscht');
+  meldung('Eintrag wurde gelöscht, bleibt im Logbuch als CSV nachvollziehbar');
   zeige('logbuch');
 }
 
