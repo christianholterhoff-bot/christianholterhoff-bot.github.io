@@ -260,7 +260,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V17, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V18, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -293,13 +293,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V17, Code Stand 09.07.2026
+   REVISIONSSTAND, V18, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V17';
+const APP_REVISION = 'V18';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -728,8 +728,8 @@ function startKarteBauen(){
   const mangelMitOrt = mangelIndex.filter(e=>e.lat && e.lng);
   const gruppe = [];
   mitOrt.forEach(e=>{
-    const m = L.circleMarker([e.lat, e.lng], {radius:9, color:statusFarbe(e.klasse),
-      fillColor:statusFarbe(e.klasse), fillOpacity:.85, weight:2}).addTo(startKarte);
+    const m = L.circleMarker([e.lat, e.lng], {radius:9, color:'var(--amber)',
+      fillColor:'#FFB020', fillOpacity:.85, weight:2}).addTo(startKarte);
     m.bindPopup(`<b>${esc(e.kennung)}</b><br>${esc(e.firma)}<br>${datumSchoen(e.datum)}, V${e.revision}<br>` +
       `<a href="#" onclick="eintragOeffnen('${e.id}');return false;">Eintrag öffnen</a>`);
     gruppe.push([e.lat, e.lng]);
@@ -1284,10 +1284,9 @@ function zeichneLogbuch(){
     </div>
     <button class="btn btn-leise" style="margin-bottom:14px" onclick="geloeschteExportieren()">Gelöschte Einträge als CSV</button>
     <div class="farb-legende">
-      <span><span class="legende-punkt" style="background:var(--ja)"></span>bestanden oder behoben</span>
-      <span><span class="legende-punkt" style="background:var(--amber)"></span>Mängel vorhanden</span>
-      <span><span class="legende-punkt" style="background:var(--nein)"></span>kritisch</span>
+      <span><span class="legende-punkt" style="background:#FFB020"></span>Baustellenbesuch</span>
       <span><span class="legende-punkt" style="background:#FF8A3D"></span>offener Mangel</span>
+      <span><span class="legende-punkt" style="background:#3FB966"></span>behobener Mangel</span>
     </div>
     <div id="logbuchInhalt"></div>`;
   ['logTabAlle','logTabBesuche','logTabMaengel'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
@@ -1302,13 +1301,13 @@ function logTypWechsel(t){ logTyp = t; zeichneLogbuch(); }
 // gemeinsame Hilfen fuer die Logbuch Reiter
 // Mangel Status als Text, entweder behoben oder offen
 function mangelStatusText(e){ return e.behoben ? 'Behoben' : 'Offen'; }
-function mangelPunktFarbe(e){ return e.behoben ? 'var(--ja)' : (MANGEL_FARBEN[e.kategorie]||'#FFB020'); }
+function mangelPunktFarbe(e){ return e.behoben ? '#3FB966' : '#FF8A3D'; }
 
 // eine Besuchskarte mit kleinem PDF Symbol rechts
 function besuchKarteHtml(e){
   return `<div class="log-karte-reihe">
     <button class="log-karte" onclick="eintragOeffnen('${e.id}')">
-      <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
+      <div class="log-punkt" style="background:#FFB020"></div>
       <div class="log-info">
         <div class="k">${esc(e.kennung)}</div>
         <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
@@ -2235,7 +2234,7 @@ async function mangelFotosLaden(id, anzahl){
 
 function zeichneMangelAnsicht(){
   const m = ansichtMangel;
-  const farbe = m.behoben ? 'var(--ja)' : (MANGEL_FARBEN[m.kategorie] || 'var(--sicher)');
+  const farbe = m.behoben ? '#3FB966' : '#FF8A3D';
   document.getElementById('app').innerHTML = `
     <h2>${esc(m.kategorie || 'Mangel')}</h2>
     <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
