@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baustellen QS">
+<meta name="theme-color" content="#14171B">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" href="data:image/png;base64,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">
+<title>PL-Christian Holterhoff-Baustellen QS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* ============ Grundfarben, dunkles Design ============ */
+:root{
+  --grund:#14171B;        /* Asphalt, Hintergrund */
+  --flaeche:#1C2127;      /* Karten und Paneele */
+  --flaeche2:#242B33;     /* Eingabefelder */
+  --linie:#2E3640;        /* feine Trennlinien */
+  --schrift:#E9ECEF;      /* Haupttext */
+  --schrift2:#93A0AD;     /* Nebentext */
+  --amber:#FFB020;        /* Baustellenwarnfarbe, Hauptakzent */
+  --amberdunkel:#8a5c00;
+  --ja:#3FB966;           /* Bewertung Ja */
+  --nein:#E5484D;         /* Bewertung Nein */
+  --sicher:#FF8A3D;       /* Kennzeichen sicherheitsrelevant */
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--grund); color:var(--schrift);
+  font-family:'Barlow',system-ui,sans-serif; font-size:16px;}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom));}
+
+/* ============ Kopfzeile mit Warnband ============ */
+header{position:sticky; top:0; z-index:900; background:var(--grund);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px 16px;
+  border-bottom:1px solid var(--linie);}
+header h1{margin:0; font-family:'Barlow Semi Condensed',sans-serif; font-weight:700;
+  font-size:20px; letter-spacing:.5px; text-transform:uppercase;}
+header h1 span{color:var(--amber);}
+.rev-tag{font-size:11px; color:var(--schrift2); margin-top:4px; font-variant-numeric:tabular-nums;}
+/* das Warnband, schwarz gelbe Schraegstreifen, unser Erkennungszeichen */
+.warnband{height:8px; border-radius:4px; margin-top:8px; background:
+  repeating-linear-gradient(-45deg, var(--amber) 0 12px, #14171B 12px 24px);
+  opacity:.35;}
+.warnband .fuell{height:100%; border-radius:4px; background:
+  repeating-linear-gradient(-45deg, var(--amber) 0 12px, #1a1300 12px 24px);
+  width:0%; transition:width .3s;}
+header .warnband{opacity:1; background:#20262d; overflow:hidden;}
+.fortschritt-text{font-size:12px; color:var(--schrift2); margin-top:4px; display:none;}
+
+main{padding:16px; max-width:720px; margin:0 auto;}
+
+/* ============ Allgemeine Bausteine ============ */
+.karte-box{background:var(--flaeche); border:1px solid var(--linie); border-radius:14px;
+  padding:16px; margin-bottom:14px;}
+.eyebrow{font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--schrift2); margin-bottom:8px;}
+h2{font-family:'Barlow Semi Condensed',sans-serif; font-size:22px; margin:0 0 12px 0;
+  font-weight:700; letter-spacing:.3px;}
+label{display:block; font-size:13px; color:var(--schrift2); margin:12px 0 5px 0; font-weight:500;}
+input[type=text], input[type=date], textarea, select{
+  width:100%; background:var(--flaeche2); border:1px solid var(--linie); border-radius:10px;
+  color:var(--schrift); padding:13px 14px; font-size:16px; font-family:inherit; outline:none;}
+input:focus, textarea:focus, select:focus{border-color:var(--amber);}
+textarea{resize:vertical; min-height:52px;}
+button{font-family:inherit; cursor:pointer; border:none; font-size:16px;}
+button:focus-visible{outline:2px solid var(--amber); outline-offset:2px;}
+
+.btn{display:block; width:100%; padding:16px; border-radius:12px; font-weight:600;
+  background:var(--flaeche2); color:var(--schrift); border:1px solid var(--linie); margin-top:12px;}
+.btn-amber{background:var(--amber); color:#14171B; border:none;}
+.btn-amber:active{background:#e69c10;}
+.btn-leise{background:transparent; border:1px solid var(--linie); color:var(--schrift2);}
+.btn-rot{background:transparent; border:1px solid var(--nein); color:var(--nein);}
+.btn-reihe{display:flex; gap:10px;}
+.btn-reihe .btn{margin-top:12px;}
+
+/* ============ Untere Navigation ============ */
+nav{position:fixed; bottom:0; left:0; right:0; z-index:900; display:flex;
+  background:#181C21; border-top:1px solid var(--linie);
+  padding-bottom:env(safe-area-inset-bottom);}
+nav button{flex:1; background:none; color:var(--schrift2); padding:12px 4px 10px 4px;
+  font-size:12px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px;}
+nav button svg{width:24px; height:24px; stroke:currentColor;}
+nav button.aktiv{color:var(--amber);}
+
+/* ============ Startseite ============ */
+.gross-knopf{width:100%; padding:20px; border-radius:14px; background:var(--amber);
+  color:#14171B; font-family:'Barlow Semi Condensed',sans-serif; font-size:20px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px;
+  box-shadow:0 4px 24px rgba(255,176,32,.25);}
+.statistik{display:flex; gap:10px; margin-bottom:14px;}
+.statistik .karte-box{flex:1; margin:0; padding:12px 14px;}
+.statistik .zahl{font-family:'Barlow Semi Condensed',sans-serif; font-size:30px; font-weight:700;
+  font-variant-numeric:tabular-nums;}
+.statistik .zahl.rot{color:var(--nein);}
+.statistik .klein{font-size:12px; color:var(--schrift2);}
+#startKarte, #pickKarte, #ansichtKarte{border-radius:12px; border:1px solid var(--linie);
+  background:#20262d; z-index:1;}
+#startKarte{height:62vh; min-height:440px;}
+#pickKarte{height:240px;}
+#ansichtKarte{height:200px;}
+/* dunkle Kartenkacheln, ein einfacher Filtertrick */
+.leaflet-tile{filter:brightness(.7) invert(1) contrast(2.6) hue-rotate(195deg) saturate(.35) brightness(.72);}
+.leaflet-container{background:#20262d; font-family:'Barlow',sans-serif;}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip{background:var(--flaeche); color:var(--schrift);}
+.leaflet-popup-content a{color:var(--amber);}
+
+/* ============ Standort Auswahl, drei Wege ============ */
+.tab-reihe{display:flex; gap:8px; margin-top:12px;}
+.tab-reihe button{flex:1; padding:11px 6px; border-radius:10px; background:var(--flaeche2);
+  border:1px solid var(--linie); color:var(--schrift2); font-weight:600; font-size:14px;}
+.tab-reihe button.aktiv{border-color:var(--amber); color:var(--amber); background:#2a2415;}
+.gps-anzeige{font-size:14px; color:var(--schrift2); margin-top:10px;
+  font-variant-numeric:tabular-nums;}
+.gps-anzeige b{color:var(--schrift);}
+
+/* ============ Suchliste Projektkenner ============ */
+.suchliste{border:1px solid var(--linie); border-radius:10px; margin-top:6px;
+  max-height:200px; overflow-y:auto; background:var(--flaeche2); display:none;}
+.suchliste div{padding:12px 14px; border-bottom:1px solid var(--linie); font-size:15px;}
+.suchliste div:last-child{border-bottom:none;}
+.suchliste div:active{background:#2a2415;}
+
+/* ============ Fragenkatalog ============ */
+.kat-kopf{display:flex; align-items:center; gap:10px; margin:22px 0 10px 0;}
+.kat-kopf .balken{width:5px; height:24px; border-radius:3px;}
+.kat-kopf h3{margin:0; font-family:'Barlow Semi Condensed',sans-serif; font-size:17px;
+  font-weight:700; text-transform:uppercase; letter-spacing:.5px;}
+.frage-karte{background:var(--flaeche); border:1px solid var(--linie); border-radius:14px;
+  padding:14px; margin-bottom:12px;}
+.frage-kopf{display:flex; gap:10px; align-items:flex-start;}
+.frage-nr{font-family:'Barlow Semi Condensed',sans-serif; font-weight:700; font-size:15px;
+  color:var(--schrift2); min-width:26px; padding-top:1px; font-variant-numeric:tabular-nums;}
+.frage-text{flex:1; font-size:15px; line-height:1.45;}
+.sicher-marke{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.8px;
+  color:var(--sicher); border:1px solid var(--sicher); border-radius:5px; padding:2px 6px;
+  margin-top:6px; text-transform:uppercase;}
+.janein{display:flex; gap:8px; margin-top:12px;}
+.janein button{flex:1; padding:12px 4px; border-radius:11px; font-weight:700; font-size:14px;
+  line-height:1.25; background:var(--flaeche2); border:1.5px solid var(--linie); color:var(--schrift2);
+  font-family:'Barlow Semi Condensed',sans-serif; letter-spacing:.3px;}
+.janein button.ja-aktiv{background:#12291a; border-color:var(--ja); color:var(--ja);}
+.janein button.nein-aktiv{background:#2b1416; border-color:var(--nein); color:var(--nein);}
+.janein button.nb-aktiv{background:#2a2e33; border-color:var(--schrift2); color:var(--schrift2);}
+.foto-reihe{display:flex; gap:10px; margin-top:10px;}
+.foto-reihe button{flex:1; padding:11px; border-radius:10px; background:transparent;
+  border:1px dashed var(--linie); color:var(--schrift2); font-size:14px; font-weight:500;}
+.foto-vorschau{position:relative; margin-top:10px;}
+.foto-vorschau img{width:100%; border-radius:10px; display:block; max-height:220px; object-fit:cover;}
+.foto-vorschau button{position:absolute; top:8px; right:8px; background:rgba(0,0,0,.65);
+  color:#fff; border-radius:8px; padding:6px 10px; font-size:13px;}
+.frage-karte textarea{margin-top:10px; font-size:14px;}
+
+/* ============ Auswertung ============ */
+.status-karte{border-radius:14px; padding:18px; margin-bottom:14px; border:1.5px solid;}
+.status-karte .titel{font-family:'Barlow Semi Condensed',sans-serif; font-size:21px;
+  font-weight:700; text-transform:uppercase; letter-spacing:.5px;}
+.status-karte .unter{font-size:14px; margin-top:4px; opacity:.85;}
+.st-gruen{border-color:var(--ja); background:#12291a; color:var(--ja);}
+.st-gelb{border-color:var(--amber); background:#2a2415; color:var(--amber);}
+.st-rot{border-color:var(--nein); background:#2b1416; color:var(--nein);}
+.st-grau{border-color:var(--linie); background:var(--flaeche); color:var(--schrift2);}
+.aus-tabelle{width:100%; border-collapse:collapse; font-size:14px;}
+.aus-tabelle td{padding:9px 4px; border-bottom:1px solid var(--linie);}
+.aus-tabelle td:last-child{text-align:right; font-variant-numeric:tabular-nums; font-weight:600;}
+.aus-tabelle tr:last-child td{border-bottom:none;}
+
+/* ============ Logbuch ============ */
+.log-karte{background:var(--flaeche); border:1px solid var(--linie); border-radius:14px;
+  padding:14px; margin-bottom:12px; display:flex; gap:12px; align-items:center; width:100%;
+  text-align:left; color:var(--schrift);}
+.log-punkt{width:12px; height:12px; border-radius:50%; flex-shrink:0;}
+.log-info{flex:1;}
+.log-info .k{font-weight:700; font-size:16px; font-family:'Barlow Semi Condensed',sans-serif;}
+.log-info .d{font-size:13px; color:var(--schrift2); margin-top:2px;}
+.log-rev{font-family:'Barlow Semi Condensed',sans-serif; font-weight:700; color:var(--amber);
+  font-size:15px;}
+.leer-hinweis{text-align:center; color:var(--schrift2); padding:40px 20px; font-size:15px;
+  line-height:1.6;}
+
+/* ============ Stammdaten ============ */
+.stamm-zeile{display:flex; align-items:center; gap:10px; padding:11px 0;
+  border-bottom:1px solid var(--linie); font-size:15px;}
+.stamm-zeile span{flex:1;}
+.stamm-zeile button{background:transparent; color:var(--nein); font-size:13px; padding:6px 10px;
+  border:1px solid var(--nein); border-radius:8px;}
+.stamm-neu{display:flex; gap:10px; margin-top:12px;}
+.stamm-neu input{flex:1;}
+.stamm-neu button{padding:0 18px; border-radius:10px; background:var(--amber); color:#14171B;
+  font-weight:700;}
+
+.filter-box{display:grid; grid-template-columns:1fr 1fr; gap:0 10px;}
+.filter-box label{margin:8px 0 4px 0;}
+.stat-reihe{display:flex; gap:10px; margin:12px 0;}
+.stat-reihe .karte-box{flex:1; margin:0; padding:10px 12px;}
+.hinweis{font-size:13px; color:var(--schrift2); line-height:1.5; margin-top:10px;}
+#druckBereich{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #druckBereich, #druckBereich *{visibility:visible;}
+  #druckBereich{display:block; position:absolute; top:0; left:0; width:100%; padding:14mm;
+    background:#fff; color:#111; font-family:Arial,sans-serif;}
+  .druck-kopf{font-size:18px; font-weight:700; margin-bottom:10px; color:#111;}
+  .druck-info{width:100%; border-collapse:collapse; margin-bottom:12px; font-size:12px;}
+  .druck-info td{padding:3px 6px 3px 0; border-bottom:1px solid #ddd;}
+  .druck-info td:first-child{color:#555; width:120px;}
+  .druck-status{border:1.5px solid #999; border-radius:6px; padding:8px 10px; margin-bottom:10px; font-size:13px; font-weight:700;}
+  .druck-kategorie{background:#eee; padding:5px 8px; font-weight:700; margin-top:12px; font-size:13px; page-break-after:avoid;}
+  .druck-frage{padding:6px 2px; border-bottom:1px solid #ddd; font-size:12px; page-break-inside:avoid;}
+  .druck-kommentar{color:#555; font-style:italic; margin-top:3px;}
+  .druck-foto{max-width:200px; margin-top:5px; display:block;}
+  .druck-wert-ja{color:#1a7a3a; font-weight:700;}
+  .druck-wert-nein{color:#c0392b; font-weight:700;}
+  .druck-wert-nb{color:#777; font-weight:700;}
+  @page{margin:12mm;}
+}
+#meldungBox{position:fixed; left:16px; right:16px; bottom:calc(76px + env(safe-area-inset-bottom) + 10px);
+  background:var(--flaeche2); color:var(--schrift); border:1px solid var(--linie); border-radius:12px;
+  padding:12px 16px; font-size:14px; text-align:center; z-index:1000; opacity:0; transform:translateY(8px);
+  pointer-events:none; transition:opacity .2s, transform .2s;}
+#meldungBox.zeigen{opacity:1; transform:translateY(0);}
+.versteckt{display:none !important;}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
+  <div class="rev-tag">Version V6, Code Stand 09.07.2026</div>
+  <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
+  <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
+  <div class="fortschritt-text" id="fortschrittText"></div>
+</header>
+
+<main id="app"></main>
+
+<nav>
+  <button id="navStart" onclick="zeige('start')">
+    <svg fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a2 2 0 01-2 2h-4v-6h-6v6H5a2 2 0 01-2-2z"/></svg>
+    Start</button>
+  <button id="navLogbuch" onclick="zeige('logbuch')">
+    <svg fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3zM4 4v13M8 8h8M8 12h8"/></svg>
+    Logbuch</button>
+  <button id="navAuswertungen" onclick="zeige('auswertungen')">
+    <svg fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+    Auswertungen</button>
+  <button id="navStamm" onclick="zeige('stammdaten')">
+    <svg fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    Stammdaten</button>
+</nav>
+
+<!-- versteckte Eingaben fuer die Fotos, einmal Kamera, einmal Galerie -->
+<input type="file" id="fotoKamera" accept="image/*" capture="environment" class="versteckt">
+<input type="file" id="fotoGalerie" accept="image/*" class="versteckt">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
+<script>
+/* =====================================================
+   PL-Christian Holterhoff, Baustellen QS
+   REVISIONSSTAND, V6, Code Stand 09.07.2026
+   Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
+   in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
+   wegen der Offline Zwischenspeicherung weiter die alte Version
+   Alles in einer Datei, Kommentare bewusst einfach gehalten
+   ===================================================== */
+const APP_REVISION = 'V6';
+
+// ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
+// sicher bedeutet, die Frage ist sicherheitsrelevant,
+// ein Nein macht den ganzen Besuch sofort kritisch
+// typ 'text' ist keine Ja Nein Frage, sondern eine freie Anmerkung, optional auszufuellen
+const KATEGORIEN = [
+  {name:'Arbeitssicherheit', farbe:'#FF8A3D'},
+  {name:'Qualität Tiefbau und Verlegung', farbe:'#4DA3FF'},
+  {name:'Dokumentation', farbe:'#3FB966'},
+  {name:'Baustellenorganisation und Umwelt', farbe:'#FFB020'}
+];
+const FRAGEN = [
+  {nr:1,  kat:0, sicher:true,  text:'Wird die vorgeschriebene persönliche Schutzausrüstung von allen Mitarbeitern getragen'},
+  {nr:2,  kat:0, sicher:true,  text:'Ist die Baustelle gemäß Vorschrift abgesichert und beschildert'},
+  {nr:3,  kat:0, sicher:true,  text:'Entspricht die Verkehrssicherung dem genehmigten Regelplan RSA21'},
+  {nr:4,  kat:0, sicher:true,  text:'Ist die Lagerung von Gefahrstoffen und Material ordnungsgemäß'},
+  {nr:5,  kat:1, sicher:false, text:'Ist das Grabenprofil Breite/Tiefe in Ordnung?'},
+  {nr:6,  kat:1, sicher:false, text:'Entspricht der Trassenverlauf dem Bestandsplan'},
+  {nr:7,  kat:1, sicher:false, text:'Wurde das Kabelschutzrohr ordnungsgemäß unbeschädigt verlegt'},
+  {nr:8,  kat:1, sicher:false, text:'Wurde das Trassenwarnband korrekt eingebracht'},
+  {nr:9,  kat:1, sicher:true,  text:'Wurden die Mindestabstände zu anderen Medien eingehalten'},
+  {nr:10, kat:1, sicher:false, text:'Sind Verfüllung und Verdichtung des Grabens ordnungsgemäß ausgeführt'},
+  {nr:11, kat:1, sicher:false, text:'Ist die Oberflächenwiederherstellung fachgerecht ausgeführt'},
+  {nr:12, kat:2, sicher:false, text:'Ist der Bestandsplan aktuell und vollständig'},
+  {nr:13, kat:3, sicher:false, text:'Ist die Baustelle sauber und ordentlich'},
+  {nr:14, kat:3, sicher:false, text:'Werden Lärm und Staubschutzmaßnahmen eingehalten'},
+  {nr:15, kat:3, sicher:false, text:'Wird Aushub und Abfall ordnungsgemäß entsorgt'},
+  {nr:16, kat:3, typ:'text', sicher:false, text:'Sonstige Anmerkungen'}
+];
+// alle Fragen ausser der freien Anmerkung, fuer Fortschritt und Auswertung
+const BEWERTBARE_FRAGEN = FRAGEN.filter(f=>f.typ!=='text');
+
+
+// leise Meldung unten am Bildschirm, statt alert, das kann in mancher Vorschau blockiert sein
+function meldung(text, dauer=3500){
+  let el = document.getElementById('meldungBox');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'meldungBox';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('zeigen');
+  clearTimeout(meldung._t);
+  meldung._t = setTimeout(()=>{ if(el) el.classList.remove('zeigen'); }, dauer);
+}
+
+// ---------- Speicher, jetzt über Firebase Firestore, echte Synchronisierung ----------
+// Trage hier dein eigenes, kostenloses Firebase Projekt ein, siehe Anleitung im Chat,
+// solange hier noch die HIER_ Platzhalter stehen, laeuft die App nur lokal auf diesem
+// Geraet, ohne Synchronisierung, das ist der sichere Notbetrieb
+const firebaseConfig = {
+  apiKey: "AIzaSyCpW-NnQwU9Lb08brlkLdqG6Xh3ZqsYKwg",
+  authDomain: "pl-holterhoff-baustellen-qs.firebaseapp.com",
+  projectId: "pl-holterhoff-baustellen-qs",
+  storageBucket: "pl-holterhoff-baustellen-qs.firebasestorage.app",
+  messagingSenderId: "544503869793",
+  appId: "1:544503869793:web:994f2dd081628bfb9f5520"
+};
+const FIREBASE_EINGERICHTET = firebaseConfig.apiKey !== "HIER_API_KEY_EINFUEGEN";
+let db = null;
+if(FIREBASE_EINGERICHTET && typeof firebase !== 'undefined'){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    // erlaubt der App, auch offline weiterzuarbeiten und spaeter automatisch nachzuziehen
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{ /* mehrmals offener Tab, kein Problem */ });
+  }catch(e){ console.error('Firebase Start fehlgeschlagen', e); db = null; }
+}
+
+const MERKER = {}; // Notloesung, solange Firebase nicht eingerichtet oder nicht erreichbar ist
+function merkerListe(prefix){ return Object.keys(MERKER).filter(k=>k.startsWith(prefix)); }
+
+async function speicherHolen(schluessel){
+  if(db){
+    try{
+      const snap = await db.collection('kv').doc(schluessel).get();
+      return snap.exists ? snap.data() : null;
+    }catch(e){ console.error('Lesen fehlgeschlagen', e); }
+  }
+  return MERKER[schluessel] !== undefined ? MERKER[schluessel] : null;
+}
+async function speicherSetzen(schluessel, wert){
+  MERKER[schluessel] = wert;
+  if(db){
+    try{ await db.collection('kv').doc(schluessel).set(wert); }
+    catch(e){ console.error('Speichern fehlgeschlagen', e); }
+  }
+}
+async function speicherLoeschen(schluessel){
+  delete MERKER[schluessel];
+  if(db){
+    try{ await db.collection('kv').doc(schluessel).delete(); }
+    catch(e){ console.error('Loeschen fehlgeschlagen', e); }
+  }
+}
+async function speicherListe(prefix){
+  if(db){
+    try{
+      const snap = await db.collection('kv')
+        .where(firebase.firestore.FieldPath.documentId(), '>=', prefix)
+        .where(firebase.firestore.FieldPath.documentId(), '<', prefix+'\uf8ff')
+        .get();
+      return snap.docs.map(d=>d.id);
+    }catch(e){ console.error('Liste laden fehlgeschlagen', e); }
+  }
+  return merkerListe(prefix);
+}
+// live Abo, jedes Geraet bekommt Aenderungen der anderen automatisch und in Echtzeit,
+// kein Aktualisieren Knopf noetig
+function indexEchtzeitStarten(){
+  db.collection('kv')
+    .where(firebase.firestore.FieldPath.documentId(), '>=', 'index:')
+    .where(firebase.firestore.FieldPath.documentId(), '<', 'index:\uf8ff')
+    .onSnapshot(snap=>{
+      logIndex = snap.docs.map(d=>d.data());
+      logIndex.sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+      if(['start','logbuch','auswertungen'].includes(aktuellerScreen)) zeige(aktuellerScreen);
+    }, err=>console.error('Echtzeit Abo Logbuch fehlgeschlagen', err));
+}
+function stammdatenEchtzeitStarten(){
+  db.collection('kv').doc('stammdaten').onSnapshot(snap=>{
+    if(snap.exists){
+      stammdaten = snap.data();
+      if(['projekt','stammdaten','auswertungen'].includes(aktuellerScreen)) zeige(aktuellerScreen);
+    }
+  }, err=>console.error('Echtzeit Abo Stammdaten fehlgeschlagen', err));
+}
+
+// ---------- der aktuelle Zustand der App ----------
+let stammdaten = {kennungen:[], firmen:[]};
+let logIndex = [];        // kurze Uebersicht aller gespeicherten Besuche
+let besuch = null;        // der Besuch an dem gerade gearbeitet wird
+let aktuelleFotoFrage = null; // fuer welche Frage gerade ein Foto geholt wird
+let standortTab = 'adresse';  // welcher Weg der Standorterfassung gerade offen ist
+let startKarte = null, pickKarte = null, ansichtKarte = null, pickMarker = null;
+let aktuellerScreen = 'start';
+let ansichtBesuch = null; // der Besuch der gerade nur angeschaut wird
+
+// ---------- Hilfen ----------
+function esc(t){ return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function heute(){ return new Date().toISOString().slice(0,10); }
+function datumSchoen(iso){ if(!iso) return ''; const [j,m,t]=iso.split('-'); return `${t}.${m}.${j}`; }
+function neueId(){ return 'b' + Date.now() + Math.floor(Math.random()*1000); }
+
+function leererBesuch(){
+  return { id:neueId(), kennung:'', firma:'', pruefer:'', datum:heute(), revision:1,
+    strasse:'', ort:'', lat:null, lng:null, antworten:{}, gespeichertAm:null };
+}
+
+// rechnet den Status eines Besuchs aus, gleiche Logik wie in der Exceltabelle
+function statusRechnen(b){
+  let ja=0, nein=0, nb=0, kritisch=0;
+  for(const f of BEWERTBARE_FRAGEN){
+    const a = b.antworten[f.nr];
+    if(!a || !a.wert) continue;
+    if(a.wert==='ja') ja++;
+    else if(a.wert==='nein'){ nein++; if(f.sicher) kritisch++; }
+    else if(a.wert==='nb') nb++;
+  }
+  const beantwortet = ja+nein+nb;
+  let status, klasse;
+  if(kritisch>0){ status='Kritisch, sofortige Maßnahme erforderlich'; klasse='rot'; }
+  else if(beantwortet===0){ status='Keine Daten vorhanden'; klasse='grau'; }
+  else if(beantwortet<BEWERTBARE_FRAGEN.length){ status='In Bearbeitung'; klasse='grau'; }
+  else if(nein>0){ status='Mängel vorhanden, Nacharbeit erforderlich'; klasse='gelb'; }
+  else { status='Bestanden'; klasse='gruen'; }
+  return {ja, nein, nb, kritisch, beantwortet, status, klasse};
+}
+function statusFarbe(klasse){
+  return klasse==='rot' ? '#E5484D' : klasse==='gelb' ? '#FFB020' : klasse==='gruen' ? '#3FB966' : '#93A0AD';
+}
+
+// ---------- Start der App ----------
+async function appStart(){
+  const sync = document.getElementById('syncStatus');
+  if(!FIREBASE_EINGERICHTET){
+    if(sync){ sync.textContent = 'Nur lokal auf diesem Gerät, Cloud noch nicht eingerichtet'; }
+  } else if(!db){
+    if(sync){ sync.textContent = 'Cloud Synchronisierung konnte nicht gestartet werden'; }
+  } else {
+    if(sync){ sync.textContent = 'Cloud Synchronisierung aktiv, alle Geräte in Echtzeit'; sync.style.color = 'var(--ja)'; }
+  }
+
+  const sd = await speicherHolen('stammdaten');
+  if(sd){ stammdaten = sd; }
+  else{
+    // ein paar Beispielwerte damit man direkt testen kann
+    stammdaten = {
+      kennungen:['P0001 Musterstadt Nord','P0002 Musterstadt Süd','P0003 Beispielhausen'],
+      firmen:['Firma A','Firma B','Firma C','Sonstige']
+    };
+    await speicherSetzen('stammdaten', stammdaten);
+  }
+
+  if(db){
+    indexEchtzeitStarten();
+    stammdatenEchtzeitStarten();
+  } else {
+    await indexAlleLaden(); // Notloesung ohne Cloud, einmaliges Laden von diesem Geraet
+  }
+  zeige('start');
+}
+
+// baut die Kurzuebersicht aller Besuche aus lauter kleinen Einzelschluesseln neu auf
+async function indexAlleLaden(){
+  const schluessel = await speicherListe('index:', true);
+  const eintraege = [];
+  for(const k of schluessel){
+    const w = await speicherHolen(k, true);
+    if(w) eintraege.push(w);
+  }
+  eintraege.sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
+  logIndex = eintraege;
+}
+
+// ---------- Bildschirm wechseln ----------
+function zeige(screen){
+  aktuellerScreen = screen;
+  ['navStart','navLogbuch','navAuswertungen','navStamm'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
+  if(screen==='start') document.getElementById('navStart').classList.add('aktiv');
+  if(screen==='logbuch') document.getElementById('navLogbuch').classList.add('aktiv');
+  if(screen==='auswertungen') document.getElementById('navAuswertungen').classList.add('aktiv');
+  if(screen==='stammdaten') document.getElementById('navStamm').classList.add('aktiv');
+  fortschrittZeigen(false);
+  if(screen==='start') zeichneStart();
+  if(screen==='logbuch') zeichneLogbuch();
+  if(screen==='auswertungen') zeichneAuswertungen();
+  if(screen==='stammdaten') zeichneStammdaten();
+  if(screen==='projekt') zeichneProjekt();
+  if(screen==='fragen') zeichneFragen();
+  if(screen==='abschluss') zeichneAbschluss();
+  if(screen==='ansicht') zeichneAnsicht();
+  window.scrollTo(0,0);
+}
+
+function fortschrittZeigen(an){
+  document.getElementById('warnband').style.display = an ? 'block' : 'none';
+  document.getElementById('fortschrittText').style.display = an ? 'block' : 'none';
+}
+function fortschrittAktualisieren(){
+  if(!besuch) return;
+  const s = statusRechnen(besuch);
+  const prozent = Math.round(s.beantwortet / BEWERTBARE_FRAGEN.length * 100);
+  document.getElementById('warnbandFuell').style.width = prozent + '%';
+  document.getElementById('fortschrittText').textContent =
+    s.beantwortet + ' von ' + BEWERTBARE_FRAGEN.length + ' Fragen beantwortet';
+}
+
+/* =====================================================
+   Startseite, Karte mit allen Besuchen als Punkte
+   ===================================================== */
+function zeichneStart(){
+  const kritische = logIndex.filter(e=>e.klasse==='rot').length;
+  document.getElementById('app').innerHTML = `
+    <button class="gross-knopf" onclick="neuerBesuch()">+ Neuer Baustellenbesuch</button>
+    <div class="statistik">
+      <div class="karte-box"><div class="zahl">${logIndex.length}</div><div class="klein">Besuche gesamt</div></div>
+      <div class="karte-box"><div class="zahl rot">${kritische}</div><div class="klein">davon kritisch</div></div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Übersichtskarte</div>
+      <div id="startKarte"></div>
+      <div class="hinweis">Jeder gespeicherte Baustellenbesuch mit Standort erscheint hier als Punkt, Farbe zeigt den Status</div>
+    </div>`;
+  // Karte erst bauen wenn das Element auch da ist
+  setTimeout(startKarteBauen, 50);
+}
+
+function startKarteBauen(){
+  const el = document.getElementById('startKarte');
+  if(!el) return;
+  if(typeof L==='undefined'){
+    el.innerHTML = '<div style="padding:16px;font-size:13px;line-height:1.55;color:var(--schrift2)">Die Kartenbibliothek konnte nicht geladen werden. Das passiert meist ohne Internetverbindung oder wenn die Seite außerhalb eines echten Browsers geöffnet wurde. Bitte im Browser mit Internetverbindung erneut versuchen.</div>';
+    return;
+  }
+  startKarte = L.map('startKarte');
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'© OpenStreetMap'}).addTo(startKarte);
+  const mitOrt = logIndex.filter(e=>e.lat && e.lng);
+  if(mitOrt.length){
+    const gruppe = [];
+    mitOrt.forEach(e=>{
+      const m = L.circleMarker([e.lat, e.lng], {radius:9, color:statusFarbe(e.klasse),
+        fillColor:statusFarbe(e.klasse), fillOpacity:.85, weight:2}).addTo(startKarte);
+      m.bindPopup(`<b>${esc(e.kennung)}</b><br>${esc(e.firma)}<br>${datumSchoen(e.datum)}, V${e.revision}<br>` +
+        `<a href="#" onclick="eintragOeffnen('${e.id}');return false;">Eintrag öffnen</a>`);
+      gruppe.push([e.lat, e.lng]);
+    });
+    startKarte.fitBounds(gruppe, {padding:[30,30], maxZoom:15});
+  } else {
+    startKarte.setView([51.388, 8.141], 13); // Zum Dümpel, 59823 Arnsberg, als Ausgangspunkt
+  }
+  setTimeout(()=>startKarte.invalidateSize(), 200);
+}
+
+/* =====================================================
+   Schritt 1, Projektdaten und Standort
+   ===================================================== */
+function neuerBesuch(){ besuch = leererBesuch(); standortTab='adresse'; zeige('projekt'); }
+
+function zeichneProjekt(){
+  const b = besuch;
+  document.getElementById('app').innerHTML = `
+    <h2>Neuer Baustellenbesuch</h2>
+    <div class="karte-box">
+      <div class="eyebrow">Projekt</div>
+      <label>Projektkenner, tippen zum Suchen</label>
+      <input type="text" id="kennungSuche" value="${esc(b.kennung)}" placeholder="Suchen oder auswählen"
+        oninput="kennungFiltern()" onfocus="kennungFiltern()" autocomplete="off">
+      <div class="suchliste" id="kennungListe"></div>
+      <label>Tiefbaufirma</label>
+      <select id="firmaWahl" onchange="besuch.firma=this.value">
+        <option value="">Bitte wählen</option>
+        ${stammdaten.firmen.map(f=>`<option ${b.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+      </select>
+      <label>Prüfer</label>
+      <input type="text" id="prueferFeld" value="${esc(b.pruefer)}" placeholder="Name des Prüfers"
+        oninput="besuch.pruefer=this.value">
+      <label>Datum</label>
+      <input type="date" value="${b.datum}" onchange="besuch.datum=this.value">
+    </div>
+
+    <div class="karte-box">
+      <div class="eyebrow">Standort</div>
+      <div class="tab-reihe">
+        <button id="tabAdresse" onclick="standortWechsel('adresse')">Adresse</button>
+        <button id="tabGps" onclick="standortWechsel('gps')">GPS</button>
+        <button id="tabKarte" onclick="standortWechsel('karte')">Karte</button>
+      </div>
+      <div id="panelAdresse">
+        <label>Straße und Hausnummer</label>
+        <input type="text" value="${esc(b.strasse)}" placeholder="z.B. Hauptstraße 12" oninput="besuch.strasse=this.value">
+        <label>Postleitzahl und Ort</label>
+        <input type="text" value="${esc(b.ort)}" placeholder="z.B. 12345 Musterstadt" oninput="besuch.ort=this.value">
+      </div>
+      <div id="panelGps" class="versteckt">
+        <button class="btn btn-amber" onclick="gpsHolen()">Standort jetzt ermitteln</button>
+        <div class="gps-anzeige" id="gpsAnzeige"></div>
+      </div>
+      <div id="panelKarte" class="versteckt">
+        <div class="hinweis" style="margin:10px 0">Auf die Karte tippen um den Standort zu setzen</div>
+        <div id="pickKarte"></div>
+      </div>
+      <div class="gps-anzeige" id="koordAnzeige"></div>
+    </div>
+
+    <div class="btn-reihe">
+      <button class="btn btn-leise" onclick="zeige('start')">Abbrechen</button>
+      <button class="btn btn-amber" onclick="weiterZuFragen()">Weiter zu den Fragen</button>
+    </div>`;
+  standortWechsel(standortTab);
+  koordAnzeigen();
+}
+
+function kennungFiltern(){
+  const feld = document.getElementById('kennungSuche');
+  const liste = document.getElementById('kennungListe');
+  const suche = feld.value.toLowerCase();
+  const treffer = stammdaten.kennungen.filter(k=>k.toLowerCase().includes(suche));
+  besuch.kennung = feld.value; // freie Eingabe geht auch
+  if(!treffer.length){ liste.style.display='none'; return; }
+  liste.innerHTML = treffer.map(k=>`<div onclick="kennungWaehlen('${esc(k).replace(/'/g,"\\'")}')">${esc(k)}</div>`).join('');
+  liste.style.display='block';
+}
+function kennungWaehlen(k){
+  besuch.kennung = k;
+  document.getElementById('kennungSuche').value = k;
+  document.getElementById('kennungListe').style.display='none';
+}
+
+function standortWechsel(tab){
+  standortTab = tab;
+  ['adresse','gps','karte'].forEach(t=>{
+    document.getElementById('tab'+t[0].toUpperCase()+t.slice(1)).classList.toggle('aktiv', t===tab);
+    document.getElementById('panel'+t[0].toUpperCase()+t.slice(1)).classList.toggle('versteckt', t!==tab);
+  });
+  if(tab==='karte') setTimeout(pickKarteBauen, 60);
+}
+
+function pickKarteBauen(){
+  const el = document.getElementById('pickKarte');
+  if(!el) return;
+  if(typeof L==='undefined'){
+    el.innerHTML = '<div style="padding:16px;font-size:13px;line-height:1.55;color:var(--schrift2)">Die Kartenbibliothek konnte nicht geladen werden, bitte Adresse oder GPS Erkennung nutzen, oder im Browser mit Internetverbindung erneut versuchen.</div>';
+    return;
+  }
+  if(pickKarte){ pickKarte.remove(); pickKarte=null; }
+  pickKarte = L.map('pickKarte');
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(pickKarte);
+  if(besuch.lat && besuch.lng){
+    pickKarte.setView([besuch.lat, besuch.lng], 16);
+    pickMarker = L.marker([besuch.lat, besuch.lng]).addTo(pickKarte);
+  } else {
+    pickKarte.setView([51.388, 8.141], 13); // Zum Dümpel, 59823 Arnsberg, als Ausgangspunkt
+  }
+  // Tipp auf die Karte setzt den Punkt
+  pickKarte.on('click', e=>{
+    besuch.lat = Math.round(e.latlng.lat*1e6)/1e6;
+    besuch.lng = Math.round(e.latlng.lng*1e6)/1e6;
+    if(pickMarker) pickMarker.setLatLng(e.latlng); else pickMarker = L.marker(e.latlng).addTo(pickKarte);
+    koordAnzeigen();
+  });
+  setTimeout(()=>pickKarte.invalidateSize(), 200);
+}
+
+function gpsHolen(){
+  const anzeige = document.getElementById('gpsAnzeige');
+  if(!navigator.geolocation){ anzeige.textContent='Standorterkennung wird auf diesem Gerät nicht unterstützt'; return; }
+  anzeige.textContent = 'Standort wird ermittelt ...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    besuch.lat = Math.round(pos.coords.latitude*1e6)/1e6;
+    besuch.lng = Math.round(pos.coords.longitude*1e6)/1e6;
+    anzeige.innerHTML = 'Standort übernommen, Genauigkeit etwa <b>' + Math.round(pos.coords.accuracy) + ' m</b>';
+    koordAnzeigen();
+  }, err=>{
+    // je nach Fehlercode eine passende, verständliche Meldung zeigen
+    if(err.code === 1){
+      anzeige.textContent = 'Standort wurde nicht freigegeben, bitte in den iPhone Einstellungen unter Safari, Standort, die Freigabe erteilen';
+    } else if(err.code === 2){
+      anzeige.textContent = 'Standort aktuell nicht bestimmbar, bitte kurz warten oder ins Freie gehen und erneut versuchen';
+    } else if(err.code === 3){
+      anzeige.textContent = 'Standortermittlung hat zu lange gedauert, bitte erneut versuchen';
+    } else {
+      anzeige.textContent = 'Standort konnte nicht ermittelt werden, bitte Karte oder Adresse nutzen';
+    }
+  }, {enableHighAccuracy:true, timeout:12000});
+}
+
+function koordAnzeigen(){
+  const el = document.getElementById('koordAnzeige');
+  if(!el) return;
+  el.innerHTML = (besuch.lat && besuch.lng)
+    ? 'Gespeicherte Koordinaten, <b>' + besuch.lat + ', ' + besuch.lng + '</b>'
+    : 'Noch keine Koordinaten gespeichert';
+}
+
+function weiterZuFragen(){
+  if(!besuch.kennung){ meldung('Bitte zuerst einen Projektkenner angeben'); return; }
+  zeige('fragen');
+}
+
+/* =====================================================
+   Schritt 2, der Fragenkatalog
+   ===================================================== */
+function zeichneFragen(){
+  fortschrittZeigen(true);
+  let html = `<h2>Fragenkatalog</h2>`;
+  KATEGORIEN.forEach((kat, ki)=>{
+    html += `<div class="kat-kopf"><div class="balken" style="background:${kat.farbe}"></div><h3>${esc(kat.name)}</h3></div>`;
+    FRAGEN.filter(f=>f.kat===ki).forEach(f=>{
+      html += `<div class="frage-karte" id="frage-${f.nr}">${frageInhalt(f)}</div>`;
+    });
+  });
+  html += `<div class="btn-reihe">
+    <button class="btn btn-leise" onclick="zeige('projekt')">Zurück</button>
+    <button class="btn btn-amber" onclick="zeige('abschluss')">Zur Auswertung</button>
+  </div>`;
+  document.getElementById('app').innerHTML = html;
+  fortschrittAktualisieren();
+}
+
+// der Inhalt einer einzelnen Fragekarte, wird auch einzeln neu gezeichnet
+function frageInhalt(f){
+  const a = besuch.antworten[f.nr] || {};
+  if(f.typ === 'text'){
+    const aktiv = !!a.ausgefuellt;
+    return `
+      <div class="frage-kopf">
+        <div class="frage-nr">${f.nr}</div>
+        <div class="frage-text">${esc(f.text)}</div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-top:12px; cursor:pointer">
+        <input type="checkbox" ${aktiv?'checked':''} onchange="freitextUmschalten(${f.nr}, this.checked)" style="width:18px; height:18px; accent-color:var(--amber)">
+        <span style="font-size:14px; color:var(--schrift2)">Anmerkung ausfüllen</span>
+      </label>
+      ${aktiv ? `<textarea placeholder="Freitext" oninput="freitextSetzen(${f.nr}, this.value)">${esc(a.text||'')}</textarea>` : ''}`;
+  }
+  return `
+    <div class="frage-kopf">
+      <div class="frage-nr">${f.nr}</div>
+      <div class="frage-text">${esc(f.text)}
+        ${f.sicher ? '<br><span class="sicher-marke">Sicherheitsrelevant</span>' : ''}
+      </div>
+    </div>
+    <div class="janein">
+      <button class="${a.wert==='ja'?'ja-aktiv':''}" onclick="bewerten(${f.nr},'ja')">Ja</button>
+      <button class="${a.wert==='nein'?'nein-aktiv':''}" onclick="bewerten(${f.nr},'nein')">Nein</button>
+      <button class="${a.wert==='nb'?'nb-aktiv':''}" onclick="bewerten(${f.nr},'nb')">Nicht bewertbar</button>
+    </div>
+    ${a.foto ? `
+      <div class="foto-vorschau">
+        <img src="${a.foto}" alt="Foto zu Frage ${f.nr}">
+        <button onclick="fotoEntfernen(${f.nr})">Entfernen</button>
+      </div>` : `
+      <div class="foto-reihe">
+        <button onclick="fotoAnfordern(${f.nr},'kamera')">📷 Foto aufnehmen</button>
+        <button onclick="fotoAnfordern(${f.nr},'galerie')">🖼 Aus Galerie</button>
+      </div>`}
+    <textarea placeholder="Kommentar, optional" oninput="kommentarSetzen(${f.nr}, this.value)">${esc(a.kommentar||'')}</textarea>`;
+}
+function frageNeuZeichnen(nr){
+  const f = FRAGEN.find(x=>x.nr===nr);
+  const el = document.getElementById('frage-'+nr);
+  if(el) el.innerHTML = frageInhalt(f);
+}
+
+function antwortHolen(nr){
+  if(!besuch.antworten[nr]) besuch.antworten[nr] = {wert:null, kommentar:'', foto:null};
+  return besuch.antworten[nr];
+}
+function bewerten(nr, wert){
+  const a = antwortHolen(nr);
+  a.wert = (a.wert===wert) ? null : wert; // nochmal tippen nimmt die Bewertung zurueck
+  frageNeuZeichnen(nr);
+  fortschrittAktualisieren();
+}
+function kommentarSetzen(nr, text){ antwortHolen(nr).kommentar = text; }
+
+// die freie Anmerkung am Ende, kein Ja Nein, nur ein Schalter und ein Textfeld
+function freitextHolen(nr){
+  if(!besuch.antworten[nr]) besuch.antworten[nr] = {ausgefuellt:false, text:''};
+  return besuch.antworten[nr];
+}
+function freitextUmschalten(nr, an){
+  const a = freitextHolen(nr);
+  a.ausgefuellt = an;
+  frageNeuZeichnen(nr);
+}
+function freitextSetzen(nr, text){ freitextHolen(nr).text = text; }
+
+
+
+// ---------- Fotos, aus Kamera oder Galerie ----------
+function fotoAnfordern(nr, quelle){
+  aktuelleFotoFrage = nr;
+  document.getElementById(quelle==='kamera' ? 'fotoKamera' : 'fotoGalerie').click();
+}
+function fotoEntfernen(nr){ antwortHolen(nr).foto = null; frageNeuZeichnen(nr); }
+
+// das Bild wird verkleinert damit der Speicher nicht platzt
+function fotoVerarbeiten(datei){
+  if(!datei || aktuelleFotoFrage===null) return;
+  const leser = new FileReader();
+  leser.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const max = 900;
+      let w = img.width, h = img.height;
+      if(w>h && w>max){ h = h*max/w; w = max; }
+      else if(h>=w && h>max){ w = w*max/h; h = max; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      antwortHolen(aktuelleFotoFrage).foto = c.toDataURL('image/jpeg', .72);
+      frageNeuZeichnen(aktuelleFotoFrage);
+      aktuelleFotoFrage = null;
+    };
+    img.src = ev.target.result;
+  };
+  leser.readAsDataURL(datei);
+}
+document.getElementById('fotoKamera').addEventListener('change', e=>{ fotoVerarbeiten(e.target.files[0]); e.target.value=''; });
+document.getElementById('fotoGalerie').addEventListener('change', e=>{ fotoVerarbeiten(e.target.files[0]); e.target.value=''; });
+
+/* =====================================================
+   Schritt 3, Auswertung und Speichern
+   ===================================================== */
+function zeichneAbschluss(){
+  fortschrittZeigen(true); fortschrittAktualisieren();
+  const s = statusRechnen(besuch);
+  let katZeilen = '';
+  KATEGORIEN.forEach((kat, ki)=>{
+    let ja=0, ges=0;
+    FRAGEN.filter(f=>f.kat===ki).forEach(f=>{
+      const a = besuch.antworten[f.nr];
+      if(a && (a.wert==='ja'||a.wert==='nein')){ ges++; if(a.wert==='ja') ja++; }
+    });
+    katZeilen += `<tr><td>${esc(kat.name)}</td><td>${ges ? Math.round(ja/ges*100)+' %' : '–'}</td></tr>`;
+  });
+  document.getElementById('app').innerHTML = `
+    <h2>Auswertung</h2>
+    <div class="status-karte st-${s.klasse}">
+      <div class="titel">${esc(s.status)}</div>
+      <div class="unter">${s.beantwortet} von ${BEWERTBARE_FRAGEN.length} Fragen beantwortet,
+        ${s.ja} mal Ja, ${s.nein} mal Nein, ${s.nb} mal nicht bewertbar${s.kritisch ? ', davon '+s.kritisch+' sicherheitsrelevant' : ''}</div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Anteil Ja je Kategorie</div>
+      <table class="aus-tabelle">${katZeilen}</table>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Besuch</div>
+      <table class="aus-tabelle">
+        <tr><td>Projektkenner</td><td>${esc(besuch.kennung)}</td></tr>
+        <tr><td>Tiefbaufirma</td><td>${esc(besuch.firma||'–')}</td></tr>
+        <tr><td>Prüfer</td><td>${esc(besuch.pruefer||'–')}</td></tr>
+        <tr><td>Datum</td><td>${datumSchoen(besuch.datum)}</td></tr>
+        <tr><td>Revisionsstand</td><td>V${besuch.revision}</td></tr>
+      </table>
+    </div>
+    <div class="btn-reihe">
+      <button class="btn btn-leise" onclick="zeige('fragen')">Zurück</button>
+      <button class="btn btn-amber" onclick="besuchSpeichern()">Besuch speichern</button>
+    </div>
+    <button class="btn" onclick="berichtDrucken(besuch)">Bericht als PDF sichern</button>`;
+}
+
+async function besuchSpeichern(){
+  const s = statusRechnen(besuch);
+  besuch.gespeichertAm = new Date().toISOString();
+  // kompletten Besuch dauerhaft auf dem Geraet speichern
+  await speicherSetzen('besuch:'+besuch.id, besuch, true);
+  // die Kurzinfo bekommt einen eigenen kleinen Schluessel statt einer gemeinsamen Liste
+  const meta = {id:besuch.id, kennung:besuch.kennung, firma:besuch.firma, pruefer:besuch.pruefer,
+    datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
+    lat:besuch.lat, lng:besuch.lng};
+  await speicherSetzen('index:'+besuch.id, meta, true);
+  await indexAlleLaden();
+  meldung('Besuch wurde als Logeintrag gespeichert, Revisionsstand V'+besuch.revision);
+  besuch = null;
+  zeige('logbuch');
+}
+
+/* =====================================================
+   Logbuch, gespeicherte Besuche
+   ===================================================== */
+function zeichneLogbuch(){
+  let html = `<h2>Logbuch</h2>`;
+  if(!logIndex.length){
+    html += `<div class="leer-hinweis">Noch keine Baustellenbesuche gespeichert<br>
+      Über Start einen neuen Besuch beginnen</div>`;
+  } else {
+    html += `<button class="btn btn-leise" onclick="logbuchExportieren()">Als Excel Datei exportieren</button>`;
+    logIndex.forEach(e=>{
+      html += `<button class="log-karte" onclick="eintragOeffnen('${e.id}')">
+        <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
+        <div class="log-info">
+          <div class="k">${esc(e.kennung)}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}, ${esc(e.status)}</div>
+        </div>
+        <div class="log-rev">V${e.revision}</div>
+      </button>`;
+    });
+  }
+  document.getElementById('app').innerHTML = html;
+}
+
+// baut aus dem Logbuch eine CSV Datei, die sich direkt in Excel oeffnen laesst,
+// das BOM am Anfang sorgt dafuer dass Umlaute in Excel korrekt angezeigt werden
+async function logbuchExportieren(){
+  meldung('Export wird vorbereitet');
+  const spalten = ['Projektkenner','Tiefbaufirma','Pruefer','Datum','Revisionsstand','Status',
+    'Kategorie','Nr','Frage','Antwort','Kommentar','Foto vorhanden'];
+  const zeilen = [spalten.join(';')];
+  for(const e of logIndex){
+    const b = await speicherHolen('besuch:'+e.id);
+    if(!b){
+      zeilen.push([e.kennung, e.firma||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
+        '','','','','',''].map(csvFeld).join(';'));
+      continue;
+    }
+    KATEGORIEN.forEach((kat, ki)=>{
+      FRAGEN.filter(f=>f.kat===ki).forEach(f=>{
+        const a = b.antworten[f.nr] || {};
+        let antwort;
+        if(f.typ === 'text'){
+          antwort = a.ausgefuellt ? (a.text || '') : 'nicht ausgefüllt';
+        } else {
+          antwort = a.wert==='ja' ? 'Ja' : a.wert==='nein' ? 'Nein' : a.wert==='nb' ? 'Nicht bewertbar' : 'offen';
+        }
+        zeilen.push([e.kennung, e.firma||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
+          kat.name, f.nr, f.text, antwort, a.kommentar||'', a.foto ? 'Ja' : 'Nein'].map(csvFeld).join(';'));
+      });
+    });
+  }
+  const inhalt = '\uFEFF' + zeilen.join('\r\n');
+  const blob = new Blob([inhalt], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Logbuch_Export_' + heute() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  meldung('Export wurde erstellt, in Dateien oder Downloads zu finden');
+}
+function csvFeld(wert){
+  wert = String(wert ?? '');
+  if(/[;"\n]/.test(wert)) wert = '"' + wert.replace(/"/g,'""') + '"';
+  return wert;
+}
+
+/* =====================================================
+   Auswertungen, gefilterte Übersicht über alle Besuche
+   ===================================================== */
+let ausFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+
+async function zeichneAuswertungen(){
+  const kennungen = [...new Set(logIndex.map(e=>e.kennung).filter(Boolean))].sort();
+  const pruefer = [...new Set(logIndex.map(e=>e.pruefer).filter(Boolean))].sort();
+  const statusListe = ['Bestanden','Mängel vorhanden, Nacharbeit erforderlich',
+    'Kritisch, sofortige Maßnahme erforderlich','In Bearbeitung'];
+
+  const gefiltert = logIndex.filter(e=>{
+    if(ausFilter.kennung && e.kennung!==ausFilter.kennung) return false;
+    if(ausFilter.firma && e.firma!==ausFilter.firma) return false;
+    if(ausFilter.pruefer && e.pruefer!==ausFilter.pruefer) return false;
+    if(ausFilter.status && e.status!==ausFilter.status) return false;
+    if(ausFilter.von && e.datum < ausFilter.von) return false;
+    if(ausFilter.bis && e.datum > ausFilter.bis) return false;
+    return true;
+  });
+  const kritisch = gefiltert.filter(e=>e.klasse==='rot').length;
+  const bestanden = gefiltert.filter(e=>e.klasse==='gruen').length;
+
+  document.getElementById('app').innerHTML = `
+    <h2>Auswertungen</h2>
+    <div class="karte-box">
+      <div class="eyebrow">Filter</div>
+      <div class="filter-box">
+        <div><label>Projektkenner</label>
+          <select onchange="ausFilter.kennung=this.value; zeichneAuswertungen()">
+            <option value="">Alle</option>
+            ${kennungen.map(k=>`<option ${ausFilter.kennung===k?'selected':''}>${esc(k)}</option>`).join('')}
+          </select></div>
+        <div><label>Tiefbaufirma</label>
+          <select onchange="ausFilter.firma=this.value; zeichneAuswertungen()">
+            <option value="">Alle</option>
+            ${stammdaten.firmen.map(f=>`<option ${ausFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Prüfer</label>
+          <select onchange="ausFilter.pruefer=this.value; zeichneAuswertungen()">
+            <option value="">Alle</option>
+            ${pruefer.map(p=>`<option ${ausFilter.pruefer===p?'selected':''}>${esc(p)}</option>`).join('')}
+          </select></div>
+        <div><label>Status</label>
+          <select onchange="ausFilter.status=this.value; zeichneAuswertungen()">
+            <option value="">Alle</option>
+            ${statusListe.map(s=>`<option value="${esc(s)}" ${ausFilter.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+          </select></div>
+        <div><label>Von</label>
+          <input type="date" value="${ausFilter.von}" onchange="ausFilter.von=this.value; zeichneAuswertungen()"></div>
+        <div><label>Bis</label>
+          <input type="date" value="${ausFilter.bis}" onchange="ausFilter.bis=this.value; zeichneAuswertungen()"></div>
+      </div>
+      <button class="btn btn-leise" onclick="ausFilterZuruecksetzen()">Filter zurücksetzen</button>
+    </div>
+    <div class="stat-reihe">
+      <div class="karte-box"><div class="zahl">${gefiltert.length}</div><div class="klein">Treffer</div></div>
+      <div class="karte-box"><div class="zahl" style="color:var(--ja)">${bestanden}</div><div class="klein">bestanden</div></div>
+      <div class="karte-box"><div class="zahl rot">${kritisch}</div><div class="klein">kritisch</div></div>
+    </div>
+    <div class="karte-box" id="diagrammBox">
+      <div class="eyebrow">Diagramme</div>
+      <div class="hinweis">Diagramme werden geladen …</div>
+    </div>
+    ${gefiltert.length ? gefiltert.map(e=>`
+      <button class="log-karte" onclick="eintragOeffnen('${e.id}')">
+        <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
+        <div class="log-info">
+          <div class="k">${esc(e.kennung)}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${esc(e.pruefer||'ohne Prüfer')}, ${datumSchoen(e.datum)}</div>
+        </div>
+        <div class="log-rev">V${e.revision}</div>
+      </button>`).join('') : '<div class="leer-hinweis">Kein Besuch passt zu diesen Filtern</div>'}`;
+
+  // die vollen Besuchsdaten werden erst jetzt nachgeladen, dafuer braucht es die einzelnen
+  // Antworten je Frage, die im leichten Index nicht enthalten sind
+  const volleBesuche = [];
+  for(const e of gefiltert){
+    const b = await speicherHolen('besuch:'+e.id);
+    if(b) volleBesuche.push(b);
+  }
+  const diagrammBox = document.getElementById('diagrammBox');
+  if(!diagrammBox) return; // Person hat inzwischen die Seite gewechselt
+  const kategorieDaten = kategorieDatenBauen(volleBesuche);
+  const monatsDaten = monatsDatenBauen(volleBesuche);
+  let ja=0, nein=0;
+  volleBesuche.forEach(b=>{ const s=statusRechnen(b); ja+=s.ja; nein+=s.nein; });
+  const gesamtProzent = (ja+nein) ? Math.round(ja/(ja+nein)*100) : null;
+
+  diagrammBox.innerHTML = `
+    <div class="eyebrow">Ergebnis je Fragekategorie</div>
+    ${kategorieChartSvg(kategorieDaten)}
+    <div class="eyebrow" style="margin-top:18px">Besuche je Monat</div>
+    ${monatsDaten.length ? balkenAnzahlSvg(monatsDaten) : '<div class="hinweis">Keine Daten im gewählten Zeitraum</div>'}
+    <div class="eyebrow" style="margin-top:18px">Durchschnittliche Performance${gesamtProzent!==null ? `, <span style="color:var(--amber)">${gesamtProzent}% Ja im Schnitt</span>` : ''}</div>
+    ${monatsDaten.length ? trendLinienSvg(monatsDaten) : '<div class="hinweis">Keine Daten im gewählten Zeitraum</div>'}`;
+}
+
+// baut die Werte fuer das Kategorie Diagramm, Anteil Ja je Kategorie ueber alle
+// gefilterten Besuche zusammen
+function kategorieDatenBauen(volleBesuche){
+  const kurzname = {
+    'Arbeitssicherheit':'Sicherheit',
+    'Qualität Tiefbau und Verlegung':'Qualität Tiefbau',
+    'Dokumentation':'Dokumentation',
+    'Baustellenorganisation und Umwelt':'Organisation'
+  };
+  return KATEGORIEN.map((kat,ki)=>{
+    let ja=0, nein=0;
+    const fragenDieserKat = FRAGEN.filter(f=>f.kat===ki && f.typ!=='text');
+    volleBesuche.forEach(b=>{
+      fragenDieserKat.forEach(f=>{
+        const a = b.antworten[f.nr];
+        if(a && a.wert==='ja') ja++;
+        else if(a && a.wert==='nein') nein++;
+      });
+    });
+    const ges = ja+nein;
+    return {name:kurzname[kat.name]||kat.name, farbe:kat.farbe, prozent: ges ? Math.round(ja/ges*100) : null};
+  });
+}
+// baut Monatswerte, Anzahl Besuche und durchschnittliche Ja Quote je Monat
+function monatsDatenBauen(volleBesuche){
+  const eimer = {};
+  volleBesuche.forEach(b=>{
+    if(!b.datum) return;
+    const monat = b.datum.slice(0,7);
+    if(!eimer[monat]) eimer[monat] = {ja:0, nein:0, anzahl:0};
+    const s = statusRechnen(b);
+    eimer[monat].ja += s.ja;
+    eimer[monat].nein += s.nein;
+    eimer[monat].anzahl += 1;
+  });
+  return Object.keys(eimer).sort().map(m=>{
+    const e = eimer[m];
+    const [jahr, monatNr] = m.split('-');
+    const beantwortet = e.ja+e.nein;
+    return {label: monatNr+'.'+jahr.slice(2), anzahl:e.anzahl,
+      prozent: beantwortet ? Math.round(e.ja/beantwortet*100) : null};
+  });
+}
+// einfache eigene SVG Diagramme, ohne externe Bibliothek, damit nichts blockiert werden kann
+function kategorieChartSvg(daten){
+  const balkenX = 104, balkenBreite = 150, zeilenHoehe = 32, oben = 6;
+  const hoehe = oben*2 + daten.length*zeilenHoehe;
+  let svg = `<svg viewBox="0 0 300 ${hoehe}" width="100%" style="display:block">`;
+  daten.forEach((d,i)=>{
+    const y = oben + i*zeilenHoehe;
+    const w = d.prozent===null ? 0 : Math.round(balkenBreite * d.prozent/100);
+    svg += `<text x="0" y="${y+15}" font-size="11" fill="#93A0AD" font-family="Barlow,sans-serif">${esc(d.name)}</text>`;
+    svg += `<rect x="${balkenX}" y="${y+3}" width="${balkenBreite}" height="16" rx="4" fill="#242B33"/>`;
+    if(w>0) svg += `<rect x="${balkenX}" y="${y+3}" width="${w}" height="16" rx="4" fill="${d.farbe}"/>`;
+    svg += `<text x="${balkenX+balkenBreite+8}" y="${y+15}" font-size="11" fill="#E9ECEF" font-family="Barlow,sans-serif">${d.prozent===null?'–':d.prozent+'%'}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+function balkenAnzahlSvg(monate){
+  const breite=300, hoehe=120, oben=10, unten=24;
+  const nutzB = breite-16, nutzH = hoehe-oben-unten;
+  const schritt = nutzB/monate.length;
+  const balkenBreite = Math.min(38, schritt-10);
+  const maxAnzahl = Math.max(1, ...monate.map(m=>m.anzahl));
+  let svg = `<svg viewBox="0 0 ${breite} ${hoehe}" width="100%" style="display:block">`;
+  monate.forEach((m,i)=>{
+    const h = Math.round(nutzH * m.anzahl/maxAnzahl);
+    const x = 8 + i*schritt + (schritt-balkenBreite)/2;
+    const y = oben + (nutzH-h);
+    svg += `<rect x="${x}" y="${y}" width="${balkenBreite}" height="${Math.max(h,2)}" rx="3" fill="#FFB020"/>`;
+    svg += `<text x="${x+balkenBreite/2}" y="${oben+nutzH+14}" font-size="9" fill="#93A0AD" text-anchor="middle" font-family="Barlow,sans-serif">${esc(m.label)}</text>`;
+    svg += `<text x="${x+balkenBreite/2}" y="${y-4}" font-size="10" fill="#E9ECEF" text-anchor="middle" font-family="Barlow,sans-serif">${m.anzahl}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+function trendLinienSvg(monate){
+  const breite=300, hoehe=130, li=22, re=8, oben=10, unten=22;
+  const nutzB = breite-li-re, nutzH = hoehe-oben-unten;
+  let svg = `<svg viewBox="0 0 ${breite} ${hoehe}" width="100%" style="display:block">`;
+  [0,50,100].forEach(p=>{
+    const y = oben + nutzH - nutzH*p/100;
+    svg += `<line x1="${li}" y1="${y}" x2="${breite-re}" y2="${y}" stroke="#2E3640" stroke-width="1"/>`;
+    svg += `<text x="${li-4}" y="${y+3}" font-size="8" fill="#93A0AD" text-anchor="end" font-family="Barlow,sans-serif">${p}</text>`;
+  });
+  const mitWert = monate.filter(m=>m.prozent!==null);
+  if(mitWert.length){
+    const schritt = mitWert.length>1 ? nutzB/(mitWert.length-1) : 0;
+    let pfad = '';
+    mitWert.forEach((m,i)=>{
+      const x = li + i*schritt, y = oben + nutzH - nutzH*m.prozent/100;
+      pfad += (i===0?'M':'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+    });
+    svg += `<path d="${pfad.trim()}" fill="none" stroke="#FFB020" stroke-width="2.5"/>`;
+    mitWert.forEach((m,i)=>{
+      const x = li + i*schritt, y = oben + nutzH - nutzH*m.prozent/100;
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.2" fill="#FFB020"/>`;
+      svg += `<text x="${x.toFixed(1)}" y="${hoehe-6}" font-size="9" fill="#93A0AD" text-anchor="middle" font-family="Barlow,sans-serif">${esc(m.label)}</text>`;
+    });
+  } else {
+    svg += `<text x="${breite/2}" y="${hoehe/2}" font-size="12" fill="#93A0AD" text-anchor="middle" font-family="Barlow,sans-serif">Keine Daten</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+function ausFilterZuruecksetzen(){
+  ausFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+  zeichneAuswertungen();
+}
+
+async function eintragOeffnen(id){
+  const b = await speicherHolen('besuch:'+id, true);
+  if(!b){ meldung('Eintrag konnte nicht geladen werden'); return; }
+  ansichtBesuch = b;
+  zeige('ansicht');
+}
+
+function zeichneAnsicht(){
+  const b = ansichtBesuch;
+  const s = statusRechnen(b);
+  let fragenHtml = '';
+  KATEGORIEN.forEach((kat, ki)=>{
+    fragenHtml += `<div class="kat-kopf"><div class="balken" style="background:${kat.farbe}"></div><h3>${esc(kat.name)}</h3></div>`;
+    FRAGEN.filter(f=>f.kat===ki).forEach(f=>{
+      const a = b.antworten[f.nr] || {};
+      if(f.typ === 'text'){
+        fragenHtml += `<div class="frage-karte">
+          <div class="frage-kopf"><div class="frage-nr">${f.nr}</div>
+            <div class="frage-text">${esc(f.text)}
+            ${a.ausgefuellt && a.text ? `<div class="hinweis">${esc(a.text)}</div>` : '<div class="hinweis">nicht ausgefüllt</div>'}</div></div>
+        </div>`;
+        return;
+      }
+      const wert = a.wert==='ja' ? '<span style="color:var(--ja);font-weight:700">Ja</span>'
+                 : a.wert==='nein' ? '<span style="color:var(--nein);font-weight:700">Nein</span>'
+                 : a.wert==='nb' ? '<span style="color:var(--schrift2);font-weight:700">Nicht bewertbar</span>'
+                 : '<span style="color:var(--schrift2)">offen</span>';
+      fragenHtml += `<div class="frage-karte">
+        <div class="frage-kopf"><div class="frage-nr">${f.nr}</div>
+          <div class="frage-text">${esc(f.text)} — ${wert}
+          ${a.kommentar ? `<div class="hinweis">${esc(a.kommentar)}</div>` : ''}</div></div>
+        ${a.foto ? `<div class="foto-vorschau"><img src="${a.foto}" alt="Foto zu Frage ${f.nr}"></div>` : ''}
+      </div>`;
+    });
+  });
+  document.getElementById('app').innerHTML = `
+    <h2>${esc(b.kennung)} <span style="color:var(--amber)">V${b.revision}</span></h2>
+    <div class="status-karte st-${s.klasse}">
+      <div class="titel">${esc(s.status)}</div>
+      <div class="unter">${esc(b.firma||'ohne Firma')}, ${datumSchoen(b.datum)}, Prüfer ${esc(b.pruefer||'–')}</div>
+    </div>
+    ${(b.lat && b.lng) || b.strasse ? `
+    <div class="karte-box">
+      <div class="eyebrow">Standort</div>
+      ${b.strasse||b.ort ? `<div style="margin-bottom:10px">${esc(b.strasse)}${b.strasse&&b.ort?', ':''}${esc(b.ort)}</div>` : ''}
+      ${b.lat && b.lng ? `<div id="ansichtKarte"></div>
+        <div class="gps-anzeige">Koordinaten, <b>${b.lat}, ${b.lng}</b></div>` : ''}
+    </div>` : ''}
+    ${fragenHtml}
+    <div class="btn-reihe">
+      <button class="btn btn-leise" onclick="zeige('logbuch')">Zurück</button>
+      <button class="btn" onclick="eintragBearbeiten()">Bearbeiten, neue Revision</button>
+    </div>
+    <button class="btn btn-amber" onclick="berichtDrucken(ansichtBesuch)">Bericht als PDF sichern</button>
+    <button class="btn btn-rot" id="loeschKnopf" onclick="loeschenAnfragen()">Eintrag löschen</button>`;
+  if(b.lat && b.lng) setTimeout(()=>{
+    const kEl = document.getElementById('ansichtKarte');
+    if(!kEl) return;
+    if(typeof L==='undefined'){
+      kEl.innerHTML = '<div style="padding:16px;font-size:13px;line-height:1.55;color:var(--schrift2)">Kartenbibliothek konnte nicht geladen werden.</div>';
+      return;
+    }
+    ansichtKarte = L.map('ansichtKarte').setView([b.lat, b.lng], 16);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(ansichtKarte);
+    L.circleMarker([b.lat, b.lng],{radius:10,color:statusFarbe(s.klasse),fillColor:statusFarbe(s.klasse),fillOpacity:.85}).addTo(ansichtKarte);
+    setTimeout(()=>ansichtKarte.invalidateSize(),200);
+  }, 60);
+}
+
+// Bearbeiten laedt den Eintrag zurueck in den Ablauf und zaehlt die Revision hoch
+function eintragBearbeiten(){
+  besuch = JSON.parse(JSON.stringify(ansichtBesuch));
+  besuch.revision = (besuch.revision||1) + 1;
+  standortTab = 'adresse';
+  zeige('projekt');
+}
+
+// erst antippen bestaetigt, dann wird wirklich geloescht, statt einem confirm Fenster,
+// das in mancher Vorschau ohnehin nicht angezeigt werden kann
+let loeschBestaetigt = false;
+function loeschenAnfragen(){
+  const btn = document.getElementById('loeschKnopf');
+  if(!btn) return;
+  if(!loeschBestaetigt){
+    loeschBestaetigt = true;
+    btn.textContent = 'Wirklich löschen, nochmal tippen';
+    setTimeout(()=>{ loeschBestaetigt=false; if(document.getElementById('loeschKnopf')) btn.textContent='Eintrag löschen'; }, 4000);
+  } else {
+    loeschBestaetigt = false;
+    eintragLoeschen();
+  }
+}
+async function eintragLoeschen(){
+  await speicherLoeschen('besuch:'+ansichtBesuch.id, true);
+  await speicherLoeschen('index:'+ansichtBesuch.id, true);
+  await indexAlleLaden();
+  meldung('Eintrag wurde gelöscht');
+  zeige('logbuch');
+}
+
+/* =====================================================
+   Stammdaten, Projektkenner und Firmen pflegen
+   ===================================================== */
+function zeichneStammdaten(){
+  document.getElementById('app').innerHTML = `
+    <h2>Stammdaten</h2>
+    <div class="karte-box">
+      <div class="eyebrow">Projektkenner</div>
+      ${stammdaten.kennungen.map((k,i)=>`
+        <div class="stamm-zeile"><span>${esc(k)}</span>
+        <button onclick="stammLoeschenAnfragen('kennungen',${i})">${stammLoeschPending==='kennungen:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        '<div class="hinweis">Noch keine Projektkenner angelegt</div>'}
+      <div class="stamm-neu">
+        <input type="text" id="neuKennung" placeholder="Neuer Projektkenner">
+        <button onclick="stammNeu('kennungen','neuKennung')">+</button>
+      </div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Tiefbaufirmen</div>
+      ${stammdaten.firmen.map((f,i)=>`
+        <div class="stamm-zeile"><span>${esc(f)}</span>
+        <button onclick="stammLoeschenAnfragen('firmen',${i})">${stammLoeschPending==='firmen:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        '<div class="hinweis">Noch keine Firmen angelegt</div>'}
+      <div class="stamm-neu">
+        <input type="text" id="neuFirma" placeholder="Neue Tiefbaufirma">
+        <button onclick="stammNeu('firmen','neuFirma')">+</button>
+      </div>
+    </div>`;
+}
+async function stammNeu(liste, feldId){
+  const feld = document.getElementById(feldId);
+  const wert = feld.value.trim();
+  if(!wert) return;
+  stammdaten[liste].push(wert);
+  await speicherSetzen('stammdaten', stammdaten, true);
+  zeichneStammdaten();
+}
+// erst antippen bestaetigt, zweites Tippen auf denselben Knopf loescht wirklich
+let stammLoeschPending = null;
+function stammLoeschenAnfragen(liste, i){
+  const key = liste+':'+i;
+  if(stammLoeschPending === key){
+    stammLoeschPending = null;
+    stammLoeschenAusfuehren(liste, i);
+  } else {
+    stammLoeschPending = key;
+    zeichneStammdaten();
+    setTimeout(()=>{ if(stammLoeschPending===key){ stammLoeschPending=null; zeichneStammdaten(); } }, 4000);
+  }
+}
+async function stammLoeschenAusfuehren(liste, i){
+  stammdaten[liste].splice(i,1);
+  await speicherSetzen('stammdaten', stammdaten, true);
+  zeichneStammdaten();
+}
+
+/* =====================================================
+   Bericht als PDF, über die Druckfunktion des Browsers,
+   das braucht keine externe Bibliothek und funktioniert
+   auch ohne Internetverbindung
+   ===================================================== */
+function berichtDrucken(b){
+  if(!b){ meldung('Kein Besuch zum Drucken vorhanden'); return; }
+  let bereich = document.getElementById('druckBereich');
+  if(!bereich){
+    bereich = document.createElement('div');
+    bereich.id = 'druckBereich';
+    document.body.appendChild(bereich);
+  }
+  bereich.innerHTML = druckInhaltBauen(b);
+  document.title = 'Pruefprotokoll_' + (b.kennung||'Projekt').replace(/[^\wäöüÄÖÜß]+/g,'_') + '_V' + b.revision;
+  setTimeout(()=>window.print(), 80);
+}
+function druckInhaltBauen(b){
+  const s = statusRechnen(b);
+  let html = `<div class="druck-kopf">PL-Christian Holterhoff-Baustellen QS</div>
+    <table class="druck-info">
+      <tr><td>Projektkenner</td><td>${esc(b.kennung)}</td></tr>
+      <tr><td>Tiefbaufirma</td><td>${esc(b.firma||'–')}</td></tr>
+      <tr><td>Prüfer</td><td>${esc(b.pruefer||'–')}</td></tr>
+      <tr><td>Datum</td><td>${datumSchoen(b.datum)}</td></tr>
+      <tr><td>Revisionsstand</td><td>V${b.revision}</td></tr>
+      ${(b.strasse||b.ort) ? `<tr><td>Adresse</td><td>${esc([b.strasse,b.ort].filter(Boolean).join(', '))}</td></tr>` : ''}
+      ${(b.lat && b.lng) ? `<tr><td>GPS Koordinaten</td><td>${b.lat}, ${b.lng}</td></tr>` : ''}
+    </table>
+    <div class="druck-status">${esc(s.status)}<br>
+      <span style="font-weight:400">${s.beantwortet} von ${BEWERTBARE_FRAGEN.length} Fragen beantwortet, ${s.ja} mal Ja, ${s.nein} mal Nein, ${s.nb} mal nicht bewertbar</span>
+    </div>`;
+  KATEGORIEN.forEach((kat, ki)=>{
+    html += `<div class="druck-kategorie">${esc(kat.name)}</div>`;
+    FRAGEN.filter(f=>f.kat===ki).forEach(f=>{
+      const a = b.antworten[f.nr] || {};
+      if(f.typ === 'text'){
+        html += `<div class="druck-frage">
+          <div>${f.nr}. ${esc(f.text)}</div>
+          ${a.ausgefuellt && a.text ? `<div class="druck-kommentar">${esc(a.text)}</div>` : `<div class="druck-kommentar">nicht ausgefüllt</div>`}
+        </div>`;
+        return;
+      }
+      const wertKlasse = a.wert==='ja' ? 'druck-wert-ja' : a.wert==='nein' ? 'druck-wert-nein' : 'druck-wert-nb';
+      const wertText = a.wert==='ja' ? 'JA' : a.wert==='nein' ? 'NEIN' : a.wert==='nb' ? 'NICHT BEWERTBAR' : 'OFFEN';
+      html += `<div class="druck-frage">
+        <div>${f.nr}. ${esc(f.text)}${f.sicher ? ' (sicherheitsrelevant)' : ''}
+          <span class="${wertKlasse}"> — ${wertText}</span></div>
+        ${a.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(a.kommentar)}</div>` : ''}
+        ${a.foto ? `<img class="druck-foto" src="${a.foto}">` : ''}
+      </div>`;
+    });
+  });
+  return html;
+}
+
+// die App Oberflaeche im Hintergrund zwischenspeichern, damit sie auch ohne
+// Internetverbindung startet, Karten und externe Bibliotheken brauchen weiterhin Internet
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(e=>console.log('Service Worker Fehler', e));
+  });
+}
+
+// los gehts
+appStart();
+</script>
+</body>
+</html>
