@@ -192,6 +192,10 @@ nav button.aktiv{color:var(--amber);}
 .stamm-zeile button{background:transparent; color:var(--nein); font-size:13px; padding:6px 10px;
   border:1px solid var(--nein); border-radius:8px;}
 .stamm-neu{display:flex; gap:10px; margin-top:12px;}
+.neu-eintrag-zeile{display:flex; gap:8px; margin-top:8px;}
+.neu-eintrag-zeile input{flex:1; background:var(--flaeche2); border:1px solid var(--amber); border-radius:10px;
+  color:var(--schrift); padding:11px 12px; font-size:15px;}
+.neu-eintrag-zeile button{padding:0 16px; border-radius:10px; background:var(--amber); color:#14171B; font-weight:700; font-size:14px;}
 .stamm-neu input{flex:1;}
 .stamm-neu button{padding:0 18px; border-radius:10px; background:var(--amber); color:#14171B;
   font-weight:700;}
@@ -234,7 +238,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V11, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V13, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -267,13 +271,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V11, Code Stand 09.07.2026
+   REVISIONSSTAND, V13, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V11';
+const APP_REVISION = 'V13';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -421,7 +425,9 @@ function stammdatenEchtzeitStarten(){
   db.collection('kv').doc('stammdaten').onSnapshot(snap=>{
     if(snap.exists){
       stammdaten = snap.data();
-      if(['projekt','stammdaten','auswertungen'].includes(aktuellerScreen)) zeige(aktuellerScreen);
+      if(!Array.isArray(stammdaten.kategorien)) stammdaten.kategorien = ['Tiefbau','Montage','Dokumentation'];
+      if(!Array.isArray(stammdaten.pruefer)) stammdaten.pruefer = [];
+      if(['projekt','mangel','stammdaten','logbuch','auswertungen'].includes(aktuellerScreen)) zeige(aktuellerScreen);
     }
   }, err=>{
     console.error('Echtzeit Abo Stammdaten fehlgeschlagen', err);
@@ -442,8 +448,53 @@ let standortTab = 'adresse';  // welcher Weg der Standorterfassung gerade offen 
 let startKarte = null, pickKarte = null, ansichtKarte = null, pickMarker = null;
 let aktuellerScreen = 'start';
 let ansichtBesuch = null; // der Besuch der gerade nur angeschaut wird
+let ansichtMangel = null; // der Mangel der gerade nur angeschaut wird
+let mangelAnsichtHerkunft = 'logbuch'; // wohin der Zurück Knopf fuehrt, logbuch oder auswertungen
 const MANGEL_KATEGORIEN = ['Tiefbau','Montage','Dokumentation'];
 const MANGEL_FARBEN = {'Tiefbau':'#4DA3FF','Montage':'#FF8A3D','Dokumentation':'#3FB966'};
+
+// generisches Auswahlfeld mit der Option, direkt einen neuen Eintrag anzulegen,
+// der landet dann dauerhaft in den Stammdaten, kein Umweg ueber den Stammdaten Reiter
+const AUSWAHL_KONTEXT = {
+  besuchFirma:     { liste:'firmen',     setzen:w=>{besuch.firma=w;},         neuZeichnen:()=>zeichneProjekt() },
+  besuchPruefer:   { liste:'pruefer',    setzen:w=>{besuch.pruefer=w;},       neuZeichnen:()=>zeichneProjekt() },
+  mangelFirma:     { liste:'firmen',     setzen:w=>{mangelEntwurf.firma=w;},     neuZeichnen:()=>zeichneMangel() },
+  mangelKategorie: { liste:'kategorien', setzen:w=>{mangelEntwurf.kategorie=w;}, neuZeichnen:()=>zeichneMangel() },
+};
+function auswahlMitNeuHtml(kontextName, liste, aktuellerWert){
+  return `
+    <select id="sel_${kontextName}" onchange="auswahlGeaendert('${kontextName}', this.value)">
+      <option value="">Bitte wählen</option>
+      ${liste.map(w=>`<option ${aktuellerWert===w?'selected':''}>${esc(w)}</option>`).join('')}
+      <option value="__neu__">+ Neu anlegen</option>
+    </select>
+    <div id="neu_${kontextName}" class="neu-eintrag-zeile versteckt">
+      <input type="text" id="neuWert_${kontextName}" placeholder="Neuer Eintrag" autocomplete="off">
+      <button onclick="neuEintragBestaetigen('${kontextName}')">Übernehmen</button>
+    </div>`;
+}
+function auswahlGeaendert(kontextName, wert){
+  const kontext = AUSWAHL_KONTEXT[kontextName];
+  if(wert === '__neu__'){
+    document.getElementById('neu_'+kontextName).classList.remove('versteckt');
+    document.getElementById('neuWert_'+kontextName).focus();
+    return;
+  }
+  document.getElementById('neu_'+kontextName).classList.add('versteckt');
+  kontext.setzen(wert);
+}
+async function neuEintragBestaetigen(kontextName){
+  const kontext = AUSWAHL_KONTEXT[kontextName];
+  const feld = document.getElementById('neuWert_'+kontextName);
+  const wert = feld.value.trim();
+  if(!wert){ meldung('Bitte einen Namen eingeben'); return; }
+  if(!stammdaten[kontext.liste].includes(wert)){
+    stammdaten[kontext.liste].push(wert);
+    await speicherSetzen('stammdaten', stammdaten, true);
+  }
+  kontext.setzen(wert);
+  kontext.neuZeichnen();
+}
 
 // ---------- Hilfen ----------
 function esc(t){ return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -468,7 +519,7 @@ function leererBesuch(){
     strasse:'', ort:'', lat:null, lng:null, antworten:{}, gespeichertAm:null };
 }
 function leererMangel(){
-  return { id:neueId(), kategorie:'', firma:'', kommentar:'', foto:null,
+  return { id:neueId(), kategorie:'', firma:'', kommentar:'', fotos:[],
     strasse:'', ort:'', lat:null, lng:null, datum:heute(), gespeichertAm:null };
 }
 
@@ -507,11 +558,14 @@ async function appStart(){
   }
 
   const sd = await speicherHolen('stammdaten');
-  if(sd){ stammdaten = sd; }
-  else{
-    // bewusst keine Musterwerte, die Stammdaten starten leer und werden im
-    // Reiter Stammdaten von euch selbst befuellt
-    stammdaten = { kennungen:[], firmen:[] };
+  if(sd){
+    stammdaten = sd;
+    // Absicherung fuer bereits bestehende Stammdaten von vor dieser Erweiterung
+    if(!Array.isArray(stammdaten.kategorien)) stammdaten.kategorien = ['Tiefbau','Montage','Dokumentation'];
+    if(!Array.isArray(stammdaten.pruefer)) stammdaten.pruefer = [];
+  } else{
+    // bewusst keine Musterfirmen oder Musterorte, nur sinnvolle Standardkategorien
+    stammdaten = { kennungen:[], firmen:[], kategorien:['Tiefbau','Montage','Dokumentation'], pruefer:[] };
     await speicherSetzen('stammdaten', stammdaten);
   }
 
@@ -569,6 +623,7 @@ function zeige(screen){
   if(screen==='fragen') zeichneFragen();
   if(screen==='abschluss') zeichneAbschluss();
   if(screen==='ansicht') zeichneAnsicht();
+  if(screen==='mangelAnsicht') zeichneMangelAnsicht();
   window.scrollTo(0,0);
 }
 
@@ -659,13 +714,9 @@ function zeichneProjekt(){
         oninput="kennungFiltern()" onfocus="kennungFiltern()" autocomplete="off">
       <div class="suchliste" id="kennungListe"></div>
       <label>Tiefbaufirma</label>
-      <select id="firmaWahl" onchange="besuch.firma=this.value">
-        <option value="">Bitte wählen</option>
-        ${stammdaten.firmen.map(f=>`<option ${b.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
-      </select>
+      ${auswahlMitNeuHtml('besuchFirma', stammdaten.firmen, b.firma)}
       <label>Prüfer</label>
-      <input type="text" id="prueferFeld" value="${esc(b.pruefer)}" placeholder="Name des Prüfers"
-        oninput="besuch.pruefer=this.value">
+      ${auswahlMitNeuHtml('besuchPruefer', stammdaten.pruefer, b.pruefer)}
       <label>Datum</label>
       <input type="date" value="${b.datum}" onchange="besuch.datum=this.value">
     </div>
@@ -803,37 +854,34 @@ function neuerMangel(){
 function zeichneMangel(){
   aktuellerOrtZiel = mangelEntwurf;
   const m = mangelEntwurf;
+  if(!Array.isArray(m.fotos)) m.fotos = [];
   document.getElementById('app').innerHTML = `
     <h2>Mangel dokumentieren</h2>
     <div class="karte-box">
-      <div class="eyebrow">Foto</div>
-      ${m.foto ? `
-        <div class="foto-vorschau">
-          <img src="${m.foto}" alt="Foto zum Mangel">
-          <button onclick="mangelFotoEntfernen()">Entfernen</button>
-        </div>` : `
-        <div class="foto-reihe">
-          <button onclick="mangelFotoAnfordern('kamera')">📷 Foto aufnehmen</button>
-          <button onclick="mangelFotoAnfordern('galerie')">🖼 Aus Galerie</button>
-        </div>`}
+      <div class="eyebrow">Fotos, mindestens 3 empfohlen</div>
+      ${m.fotos.length ? `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px">
+        ${m.fotos.map((foto,i)=>`
+          <div style="position:relative">
+            <img src="${foto}" alt="Foto ${i+1}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; display:block">
+            <button onclick="mangelFotoEntfernen(${i})" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,.65); color:#fff; border-radius:7px; padding:3px 8px; font-size:12px">✕</button>
+          </div>`).join('')}
+      </div>` : ''}
+      <div class="foto-reihe">
+        <button onclick="mangelFotoAnfordern('kamera')">📷 Foto aufnehmen</button>
+        <button onclick="mangelFotoAnfordern('galerie')">🖼 Aus Galerie</button>
+      </div>
     </div>
     <div class="karte-box">
       <div class="eyebrow">Angaben</div>
       <label>Kategorie</label>
-      <select onchange="mangelEntwurf.kategorie=this.value">
-        <option value="">Bitte wählen</option>
-        ${MANGEL_KATEGORIEN.map(k=>`<option ${m.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
-      </select>
-      <label>Tiefbaufirma</label>
-      <select onchange="mangelEntwurf.firma=this.value">
-        <option value="">Bitte wählen</option>
-        ${stammdaten.firmen.map(f=>`<option ${m.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
-      </select>
+      ${auswahlMitNeuHtml('mangelKategorie', stammdaten.kategorien, m.kategorie)}
+      <label>Tiefbaufirma, Pflichtfeld</label>
+      ${auswahlMitNeuHtml('mangelFirma', stammdaten.firmen, m.firma)}
       <label>Kommentar, optional</label>
       <textarea placeholder="Kommentar" oninput="mangelEntwurf.kommentar=this.value">${esc(m.kommentar||'')}</textarea>
     </div>
     <div class="karte-box">
-      <div class="eyebrow">Standort</div>
+      <div class="eyebrow">Standort, Pflichtfeld</div>
       <div class="tab-reihe">
         <button id="tabAdresse" onclick="standortWechsel('adresse')">Adresse</button>
         <button id="tabGps" onclick="standortWechsel('gps')">GPS</button>
@@ -865,13 +913,14 @@ function zeichneMangel(){
 
 async function mangelSpeichern(){
   const m = mangelEntwurf;
-  if(!m.kategorie){ meldung('Bitte eine Kategorie wählen'); return; }
   if(!m.firma){ meldung('Bitte eine Tiefbaufirma wählen'); return; }
-  if(!m.foto){ meldung('Bitte ein Foto hinzufügen'); return; }
+  const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
+  if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
   m.gespeichertAm = new Date().toISOString();
   await speicherSetzen('mangel:'+m.id, m);
   const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, datum:m.datum,
-    strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm};
+    strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
+    fotoAnzahl:(m.fotos||[]).length};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
   meldung('Mangel wurde gespeichert');
@@ -982,7 +1031,7 @@ function mangelFotoAnfordern(quelle){
   aktuelleFotoFrage = null;
   document.getElementById(quelle==='kamera' ? 'fotoKamera' : 'fotoGalerie').click();
 }
-function mangelFotoEntfernen(){ mangelEntwurf.foto = null; zeichneMangel(); }
+function mangelFotoEntfernen(i){ mangelEntwurf.fotos.splice(i,1); zeichneMangel(); }
 
 // das Bild wird verkleinert damit der Speicher nicht platzt
 function fotoVerarbeiten(datei){
@@ -1000,7 +1049,7 @@ function fotoVerarbeiten(datei){
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       const datenUrl = c.toDataURL('image/jpeg', .72);
       if(mangelFotoAktiv){
-        mangelEntwurf.foto = datenUrl;
+        mangelEntwurf.fotos.push(datenUrl);
         mangelFotoAktiv = false;
         zeichneMangel();
       } else {
@@ -1138,13 +1187,13 @@ function zeichneLogbuchAlle(){
         </div>
         <div class="log-rev">V${e.revision}</div>
       </button>` : `
-      <div class="log-karte" style="cursor:default">
+      <button class="log-karte" onclick="mangelOeffnen('${e.id}','logbuch')">
         <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kategorie||'Mangel')} <span style="color:var(--sicher);font-size:10px;font-weight:700;letter-spacing:.5px;margin-left:6px">MANGEL</span></div>
           <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
         </div>
-      </div>`).join('') : '<div class="leer-hinweis">Kein Eintrag passt zu diesen Filtern</div>'}`;
+      </button>`).join('') : '<div class="leer-hinweis">Kein Eintrag passt zu diesen Filtern</div>'}`;
 }
 
 // Reiter Besuche, wie bisher, mit vollem Filtersatz
@@ -1236,7 +1285,7 @@ function zeichneLogbuchMaengel(){
         <div><label>Kategorie</label>
           <select onchange="logMangelFilter.kategorie=this.value; zeichneLogbuchMaengel()">
             <option value="">Alle</option>
-            ${MANGEL_KATEGORIEN.map(k=>`<option ${logMangelFilter.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
+            ${stammdaten.kategorien.map(k=>`<option ${logMangelFilter.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
           </select></div>
         <div><label>Tiefbaufirma</label>
           <select onchange="logMangelFilter.firma=this.value; zeichneLogbuchMaengel()">
@@ -1252,13 +1301,13 @@ function zeichneLogbuchMaengel(){
     </div>
     <button class="btn btn-amber" onclick="maengellisteDrucken()">Mängelliste als PDF, ${gefiltert.length} Einträge</button>
     ${gefiltert.length ? gefiltert.map(e=>`
-      <div class="log-karte" style="cursor:default">
+      <button class="log-karte" onclick="mangelOeffnen('${e.id}','logbuch')">
         <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kategorie||'ohne Kategorie')}</div>
           <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
         </div>
-      </div>`).join('') : '<div class="leer-hinweis">Kein Mangel passt zu diesen Filtern</div>'}`;
+      </button>`).join('') : '<div class="leer-hinweis">Kein Mangel passt zu diesen Filtern</div>'}`;
 }
 function logMangelFilterZuruecksetzen(){
   logMangelFilter = {kategorie:'', firma:'', von:'', bis:''};
@@ -1297,7 +1346,9 @@ async function maengellisteDrucken(){
       <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
       ${(m.strasse||m.ort) ? `<div class="druck-kommentar">Ort, ${esc([m.strasse,m.ort].filter(Boolean).join(', '))}</div>` : ''}
       ${m.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(m.kommentar)}</div>` : ''}
-      ${m.foto ? `<img class="druck-foto" src="${m.foto}">` : ''}
+      ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:5px">
+        ${m.fotos.map(f=>`<img class="druck-foto" style="width:140px; max-width:140px; margin-top:0" src="${f}">`).join('')}
+      </div>` : ''}
     </div>`;
   });
   bereich.innerHTML = html;
@@ -1484,7 +1535,7 @@ async function zeichneAuswertungenMaengel(){
     return true;
   });
 
-  const kategorieZaehlung = MANGEL_KATEGORIEN.map(k=>({
+  const kategorieZaehlung = stammdaten.kategorien.map(k=>({
     name:k, farbe:MANGEL_FARBEN[k]||'#FFB020', anzahl: gefiltert.filter(e=>e.kategorie===k).length
   }));
   const firmaZaehlung = firmen.map(f=>({
@@ -1501,7 +1552,7 @@ async function zeichneAuswertungenMaengel(){
           <select class="w-full bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 px-3 py-2.5 text-base"
             onchange="mangelFilter.kategorie=this.value; zeichneAuswertungenMaengel()">
             <option value="">Alle</option>
-            ${MANGEL_KATEGORIEN.map(k=>`<option ${mangelFilter.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
+            ${stammdaten.kategorien.map(k=>`<option ${mangelFilter.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
           </select>
         </div>
         <div>
@@ -1527,14 +1578,14 @@ async function zeichneAuswertungenMaengel(){
         onclick="mangelFilter={kategorie:'',firma:'',von:'',bis:''}; zeichneAuswertungenMaengel()">Filter zurücksetzen</button>
     </div>
 
-    <div class="grid grid-cols-4 gap-2 mb-4">
-      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-center">
+    <div class="flex flex-wrap gap-2 mb-4">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-center flex-1 min-w-[70px]">
         <div class="text-2xl font-bold text-amber-400" style="font-family:'Barlow Semi Condensed',sans-serif">${gefiltert.length}</div>
         <div class="text-[11px] text-zinc-500 mt-1">Gesamt</div>
       </div>
-      ${MANGEL_KATEGORIEN.map(k=>`
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-center">
-          <div class="text-2xl font-bold" style="font-family:'Barlow Semi Condensed',sans-serif; color:${MANGEL_FARBEN[k]}">${gefiltert.filter(e=>e.kategorie===k).length}</div>
+      ${stammdaten.kategorien.map(k=>`
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-center flex-1 min-w-[70px]">
+          <div class="text-2xl font-bold" style="font-family:'Barlow Semi Condensed',sans-serif; color:${MANGEL_FARBEN[k]||'#FFB020'}">${gefiltert.filter(e=>e.kategorie===k).length}</div>
           <div class="text-[11px] text-zinc-500 mt-1">${esc(k)}</div>
         </div>`).join('')}
     </div>
@@ -1551,14 +1602,14 @@ async function zeichneAuswertungenMaengel(){
 
     <div class="space-y-2">
     ${gefiltert.length ? gefiltert.map(e=>`
-      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+      <button onclick="mangelOeffnen('${e.id}','auswertungen')" class="w-full text-left bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
         <div class="w-3 h-3 rounded-full mt-1 flex-shrink-0" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
         <div class="flex-1 min-w-0">
           <div class="text-xs font-bold uppercase tracking-wide" style="color:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}">${esc(e.kategorie||'ohne Kategorie')}</div>
           <div class="text-sm text-zinc-200 mt-0.5">${esc(e.firma||'ohne Firma')}</div>
           <div class="text-xs text-zinc-500 mt-0.5">${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
         </div>
-      </div>`).join('') : '<div class="text-center text-zinc-500 py-10 text-sm">Kein Mangel passt zu diesen Filtern</div>'}
+      </button>`).join('') : '<div class="text-center text-zinc-500 py-10 text-sm">Kein Mangel passt zu diesen Filtern</div>'}
     </div>`;
 }
 
@@ -1712,6 +1763,100 @@ async function eintragOeffnen(id){
   zeige('ansicht');
 }
 
+/* =====================================================
+   Mangel Ansicht, ein einzelner Mangel im Detail
+   ===================================================== */
+async function mangelOeffnen(id, herkunft){
+  const m = await speicherHolen('mangel:'+id);
+  if(!m){ meldung('Mangel konnte nicht geladen werden'); return; }
+  ansichtMangel = m;
+  mangelAnsichtHerkunft = herkunft || 'logbuch';
+  zeige('mangelAnsicht');
+}
+
+function zeichneMangelAnsicht(){
+  const m = ansichtMangel;
+  const farbe = MANGEL_FARBEN[m.kategorie] || 'var(--sicher)';
+  document.getElementById('app').innerHTML = `
+    <h2>${esc(m.kategorie || 'Mangel')}</h2>
+    <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
+      <div class="titel">${esc(m.kategorie || 'Ohne Kategorie')}</div>
+      <div class="unter">${esc(m.firma || 'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
+    </div>
+    ${(m.strasse || m.ort || (m.lat && m.lng)) ? `
+    <div class="karte-box">
+      <div class="eyebrow">Standort</div>
+      ${(m.strasse || m.ort) ? `<div style="margin-bottom:10px">${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</div>` : ''}
+      ${(m.lat && m.lng) ? `<div id="mangelAnsichtKarte" style="height:200px;border-radius:12px;border:1px solid var(--linie)"></div>
+        <div class="gps-anzeige">Koordinaten, <b>${m.lat}, ${m.lng}</b></div>` : ''}
+    </div>` : ''}
+    ${m.kommentar ? `<div class="karte-box"><div class="eyebrow">Kommentar</div><div>${esc(m.kommentar)}</div></div>` : ''}
+    <div class="karte-box">
+      <div class="eyebrow">Fotos${m.fotos && m.fotos.length ? ', '+m.fotos.length : ''}</div>
+      ${(m.fotos && m.fotos.length) ? `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px">
+        ${m.fotos.map(f=>`<img src="${f}" alt="Foto" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px">`).join('')}
+      </div>` : '<div class="hinweis">Keine Fotos hinterlegt</div>'}
+    </div>
+    <div class="btn-reihe">
+      <button class="btn btn-leise" onclick="zeige(mangelAnsichtHerkunft)">Zurück</button>
+      <button class="btn" onclick="mangelDrucken(ansichtMangel)">Als PDF sichern</button>
+    </div>
+    <button class="btn btn-rot" id="mangelLoeschKnopf" onclick="mangelLoeschenAnfragen()">Mangel löschen</button>`;
+  if(m.lat && m.lng) setTimeout(()=>{
+    const kEl = document.getElementById('mangelAnsichtKarte');
+    if(!kEl) return;
+    if(typeof L==='undefined'){
+      kEl.innerHTML = '<div style="padding:16px;font-size:13px;line-height:1.55;color:var(--schrift2)">Kartenbibliothek konnte nicht geladen werden.</div>';
+      return;
+    }
+    const k = L.map('mangelAnsichtKarte').setView([m.lat, m.lng], 16);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(k);
+    L.circleMarker([m.lat, m.lng], {radius:9, color:farbe, fillColor:farbe, fillOpacity:.85, weight:2}).addTo(k);
+    setTimeout(()=>k.invalidateSize(), 200);
+  }, 60);
+}
+
+let mangelLoeschBestaetigt = false;
+function mangelLoeschenAnfragen(){
+  const btn = document.getElementById('mangelLoeschKnopf');
+  if(!btn) return;
+  if(!mangelLoeschBestaetigt){
+    mangelLoeschBestaetigt = true;
+    btn.textContent = 'Wirklich löschen, nochmal tippen';
+    setTimeout(()=>{ mangelLoeschBestaetigt=false; if(document.getElementById('mangelLoeschKnopf')) btn.textContent='Mangel löschen'; }, 4000);
+  } else {
+    mangelLoeschBestaetigt = false;
+    mangelLoeschen();
+  }
+}
+async function mangelLoeschen(){
+  await speicherLoeschen('mangel:'+ansichtMangel.id, true);
+  await speicherLoeschen('mangelindex:'+ansichtMangel.id, true);
+  await mangelIndexLaden();
+  meldung('Mangel wurde gelöscht');
+  zeige(mangelAnsichtHerkunft);
+}
+
+// druckt einen einzelnen Mangel mit allen Fotos, gleiche Druckvorlage wie die Mängelliste
+function mangelDrucken(m){
+  let bereich = document.getElementById('druckBereich');
+  if(!bereich){ bereich = document.createElement('div'); bereich.id = 'druckBereich'; document.body.appendChild(bereich); }
+  let html = `<div class="druck-kopf">Mangel, ${esc(m.kategorie || 'ohne Kategorie')}</div>
+    <table class="druck-info">
+      <tr><td>Tiefbaufirma</td><td>${esc(m.firma || '–')}</td></tr>
+      <tr><td>Datum</td><td>${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</td></tr>
+      ${(m.strasse || m.ort) ? `<tr><td>Adresse</td><td>${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</td></tr>` : ''}
+      ${(m.lat && m.lng) ? `<tr><td>GPS Koordinaten</td><td>${m.lat}, ${m.lng}</td></tr>` : ''}
+    </table>
+    ${m.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(m.kommentar)}</div>` : ''}
+    ${(m.fotos && m.fotos.length) ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+      ${m.fotos.map(f=>`<img class="druck-foto" style="width:160px;max-width:160px;margin-top:0" src="${f}">`).join('')}
+    </div>` : ''}`;
+  bereich.innerHTML = html;
+  document.title = 'Mangel_' + (m.kategorie || 'Eintrag').replace(/[^\wäöüÄÖÜß]+/g,'_') + '_' + m.datum;
+  setTimeout(()=>window.print(), 80);
+}
+
 function zeichneAnsicht(){
   const b = ansichtBesuch;
   const s = statusRechnen(b);
@@ -1831,6 +1976,28 @@ function zeichneStammdaten(){
       <div class="stamm-neu">
         <input type="text" id="neuFirma" placeholder="Neue Tiefbaufirma">
         <button onclick="stammNeu('firmen','neuFirma')">+</button>
+      </div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Mangel Kategorien</div>
+      ${stammdaten.kategorien.map((k,i)=>`
+        <div class="stamm-zeile"><span>${esc(k)}</span>
+        <button onclick="stammLoeschenAnfragen('kategorien',${i})">${stammLoeschPending==='kategorien:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        '<div class="hinweis">Noch keine Kategorien angelegt</div>'}
+      <div class="stamm-neu">
+        <input type="text" id="neuKategorie" placeholder="Neue Kategorie">
+        <button onclick="stammNeu('kategorien','neuKategorie')">+</button>
+      </div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Prüfer</div>
+      ${stammdaten.pruefer.map((p,i)=>`
+        <div class="stamm-zeile"><span>${esc(p)}</span>
+        <button onclick="stammLoeschenAnfragen('pruefer',${i})">${stammLoeschPending==='pruefer:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        '<div class="hinweis">Noch keine Prüfer angelegt</div>'}
+      <div class="stamm-neu">
+        <input type="text" id="neuPruefer" placeholder="Neuer Prüfer">
+        <button onclick="stammNeu('pruefer','neuPruefer')">+</button>
       </div>
     </div>`;
 }
