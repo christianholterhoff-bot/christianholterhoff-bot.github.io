@@ -248,6 +248,10 @@ nav button.aktiv{color:var(--amber);}
   color:var(--ja); font-weight:600; font-size:13px;}
 .behoben-marke{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.5px; color:var(--ja);
   border:1px solid var(--ja); border-radius:5px; padding:2px 6px; margin-left:6px; text-transform:uppercase;}
+.farb-legende{display:flex; flex-wrap:wrap; gap:10px 16px; padding:12px 14px; margin-bottom:14px;
+  background:var(--flaeche); border:1px solid var(--linie); border-radius:12px; font-size:12px; color:var(--schrift2);}
+.farb-legende span{display:inline-flex; align-items:center; gap:6px;}
+.legende-punkt{width:11px; height:11px; border-radius:50%; display:inline-block; flex-shrink:0;}
 .versteckt{display:none !important;}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
 </style>
@@ -256,7 +260,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V16, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V17, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -289,13 +293,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V16, Code Stand 09.07.2026
+   REVISIONSSTAND, V17, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V16';
+const APP_REVISION = 'V17';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -735,7 +739,8 @@ function startKarteBauen(){
     const icon = L.divIcon({className:'', iconSize:[14,14], iconAnchor:[7,7],
       html:'<div style="width:14px;height:14px;background:'+rautenFarbe+';border:2px solid #14171B;transform:rotate(45deg)"></div>'});
     const m = L.marker([e.lat, e.lng], {icon}).addTo(startKarte);
-    m.bindPopup(`<b>Mangel, ${esc(e.kategorie)}</b><br>${esc(e.firma||'ohne Firma')}<br>${datumSchoen(e.datum)}<br>${e.behoben ? 'Behoben' : 'Offen'}`);
+    m.bindPopup(`<b>Mangel, ${esc(e.kategorie)}</b><br>${esc(e.firma||'ohne Firma')}<br>${datumSchoen(e.datum)}<br>${e.behoben ? 'Behoben' : 'Offen'}<br>` +
+      `<a href="#" onclick="mangelOeffnen('${e.id}','start');return false;">Mangel öffnen</a>`);
     gruppe.push([e.lat, e.lng]);
   });
   if(gruppe.length){
@@ -884,6 +889,27 @@ function koordAnzeigen(){
     : 'Noch keine Koordinaten gespeichert';
 }
 
+// wandelt eine eingetippte Adresse in GPS Koordinaten um, ueber den kostenlosen
+// Dienst von OpenStreetMap, damit auch bei reiner Adresseingabe ein Kartenpunkt entsteht.
+// Wird beim Speichern automatisch aufgerufen, wenn noch keine Koordinaten vorhanden sind.
+async function adresseZuKoordinaten(ziel){
+  if(ziel.lat && ziel.lng) return true; // schon vorhanden, zum Beispiel per GPS oder Karte
+  const teile = [ziel.strasse, ziel.ort].filter(t=>t && t.trim());
+  if(!teile.length) return false;
+  const suche = teile.join(', ') + ', Deutschland';
+  try{
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(suche);
+    const antwort = await fetch(url, {headers:{'Accept':'application/json'}});
+    const daten = await antwort.json();
+    if(daten && daten.length){
+      ziel.lat = Math.round(parseFloat(daten[0].lat)*1e6)/1e6;
+      ziel.lng = Math.round(parseFloat(daten[0].lon)*1e6)/1e6;
+      return true;
+    }
+  }catch(e){ console.error('Adresssuche fehlgeschlagen', e); }
+  return false;
+}
+
 function weiterZuFragen(){
   if(!besuch.kennung){ meldung('Bitte zuerst einen Projektkenner angeben'); return; }
   zeige('fragen');
@@ -905,6 +931,13 @@ function neuerMangel(){
 // beim Speichern wird dann derselbe Eintrag ueberschrieben statt ein neuer angelegt
 function mangelBearbeiten(){
   mangelEntwurf = JSON.parse(JSON.stringify(ansichtMangel));
+  // ein behobener Mangel, der wieder bearbeitet wird, gilt danach wieder als offen,
+  // denn wenn nachgearbeitet wird, ist der frühere Behoben Stand nicht mehr gültig
+  if(mangelEntwurf.behoben){
+    mangelEntwurf.behoben = false;
+    mangelEntwurf.behobenAm = null;
+    meldung('Mangel wird beim Speichern wieder auf offen gesetzt');
+  }
   mangelBearbeitenAktiv = true;
   mangelBearbeitenHerkunft = mangelAnsichtHerkunft;
   aktuellerOrtZiel = mangelEntwurf;
@@ -985,10 +1018,19 @@ async function mangelSpeichern(){
   if(!m.firma){ meldung('Bitte eine Tiefbaufirma wählen'); return; }
   const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
   if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
+  // bei reiner Adresseingabe fehlen noch Koordinaten, hier automatisch nachschlagen,
+  // damit spaeter der Kartenpunkt erscheint
+  if(!m.lat || !m.lng){
+    meldung('Standort wird ermittelt …');
+    await adresseZuKoordinaten(m);
+  }
   // beim Bearbeiten kann es vorher schon Fotos gegeben haben, die jetzt entfernt wurden,
   // die dann verwaisten alten Fotodokumente werden gleich mit aufgeraeumt
   const vorherigeFotoAnzahl = (mangelIndex.find(e=>e.id===m.id) || {}).fotoAnzahl || 0;
-  m.gespeichertAm = new Date().toISOString();
+  const jetzt = new Date().toISOString();
+  // das erste Erfassungsdatum bleibt immer erhalten, nur das Aenderungsdatum wird neu gesetzt
+  if(!m.gespeichertAm) m.gespeichertAm = jetzt;
+  if(mangelBearbeitenAktiv) m.geaendertAm = jetzt;
   const fotos = m.fotos || [];
   // jedes Foto einzeln speichern, sonst wird ein Mangel mit mehreren Fotos schnell
   // zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
@@ -1003,7 +1045,7 @@ async function mangelSpeichern(){
   await speicherSetzen('mangel:'+m.id, mangelZumSpeichern);
   const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, eintrager:m.eintrager, datum:m.datum,
     strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
-    fotoAnzahl:fotos.length, behoben:!!m.behoben, behobenAm:m.behobenAm||null};
+    geaendertAm:m.geaendertAm||null, fotoAnzahl:fotos.length, behoben:!!m.behoben, behobenAm:m.behobenAm||null};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
   meldung(mangelBearbeitenAktiv ? 'Änderung wurde gespeichert' : 'Mangel wurde gespeichert');
@@ -1195,6 +1237,12 @@ function zeichneAbschluss(){
 
 async function besuchSpeichern(){
   const s = statusRechnen(besuch);
+  // bei reiner Adresseingabe fehlen noch Koordinaten, hier automatisch nachschlagen,
+  // damit auch der Besuch als Punkt auf der Übersichtskarte erscheint
+  if(!besuch.lat || !besuch.lng){
+    meldung('Standort wird ermittelt …');
+    await adresseZuKoordinaten(besuch);
+  }
   besuch.gespeichertAm = new Date().toISOString();
   // Fotos einzeln separat speichern, sonst wird ein Besuch mit mehreren Fotos
   // schnell zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
@@ -1235,6 +1283,12 @@ function zeichneLogbuch(){
       <button id="logTabMaengel" onclick="logTypWechsel('maengel')">Mängel</button>
     </div>
     <button class="btn btn-leise" style="margin-bottom:14px" onclick="geloeschteExportieren()">Gelöschte Einträge als CSV</button>
+    <div class="farb-legende">
+      <span><span class="legende-punkt" style="background:var(--ja)"></span>bestanden oder behoben</span>
+      <span><span class="legende-punkt" style="background:var(--amber)"></span>Mängel vorhanden</span>
+      <span><span class="legende-punkt" style="background:var(--nein)"></span>kritisch</span>
+      <span><span class="legende-punkt" style="background:#FF8A3D"></span>offener Mangel</span>
+    </div>
     <div id="logbuchInhalt"></div>`;
   ['logTabAlle','logTabBesuche','logTabMaengel'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
   document.getElementById('logTab'+logTyp.charAt(0).toUpperCase()+logTyp.slice(1)).classList.add('aktiv');
@@ -1271,7 +1325,7 @@ function mangelKarteHtml(e, herkunft){
       <div class="log-punkt" style="background:${mangelPunktFarbe(e)}"></div>
       <div class="log-info">
         <div class="k">${esc(e.kategorie||'Mangel')}${e.behoben ? '<span class="behoben-marke">Behoben</span>' : ''}</div>
-        <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}</div>
+        <div class="d">${esc(e.firma||'ohne Firma')}, erfasst ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
       </div>
     </button>
     ${e.behoben ? '' : `<button class="behoben-knopf" onclick="mangelBehobenAnfragen('${e.id}')">Behoben</button>`}
@@ -1563,7 +1617,7 @@ async function maengellisteDrucken(){
   });
   bereich.innerHTML = html;
   document.title = 'Maengelliste_' + heute();
-  setTimeout(()=>window.print(), 80);
+  druckStarten(bereich);
 }
 
 // baut aus dem Logbuch eine CSV Datei, die sich direkt in Excel oeffnen laesst,
@@ -2186,7 +2240,7 @@ function zeichneMangelAnsicht(){
     <h2>${esc(m.kategorie || 'Mangel')}</h2>
     <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
       <div class="titel">${m.behoben ? 'Behoben' : 'Offen'}${m.kategorie ? ', '+esc(m.kategorie) : ''}</div>
-      <div class="unter">${esc(m.firma || 'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
+      <div class="unter">${esc(m.firma || 'ohne Firma')}, erfasst ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.geaendertAm ? ', zuletzt geändert '+datumSchoen(m.geaendertAm.slice(0,10))+', '+zeitSchoen(m.geaendertAm)+' Uhr' : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
     </div>
     ${m.behoben ? '' : '<button class="btn btn-amber" onclick="mangelBehobenAnfragen(ansichtMangel.id)">Als behoben markieren</button>'}
     ${(m.strasse || m.ort || (m.lat && m.lng)) ? `
@@ -2194,7 +2248,9 @@ function zeichneMangelAnsicht(){
       <div class="eyebrow">Standort</div>
       ${(m.strasse || m.ort) ? `<div style="margin-bottom:10px">${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</div>` : ''}
       ${(m.lat && m.lng) ? `<div id="mangelAnsichtKarte" style="height:200px;border-radius:12px;border:1px solid var(--linie)"></div>
-        <div class="gps-anzeige">Koordinaten, <b>${m.lat}, ${m.lng}</b></div>` : ''}
+        <div class="gps-anzeige">Koordinaten, <b>${m.lat}, ${m.lng}</b></div>`
+        : `<div class="hinweis" style="margin-bottom:10px">Für diese Adresse liegt noch kein Kartenpunkt vor, daher fehlt der Punkt auf der Übersichtskarte.</div>
+           <button class="btn btn-leise" onclick="mangelStandortNachtragen()">Kartenpunkt jetzt ermitteln</button>`}
     </div>` : ''}
     ${m.kommentar ? `<div class="karte-box"><div class="eyebrow">Kommentar</div><div>${esc(m.kommentar)}</div></div>` : ''}
     <div class="karte-box">
@@ -2221,6 +2277,22 @@ function zeichneMangelAnsicht(){
     L.circleMarker([m.lat, m.lng], {radius:9, color:farbe, fillColor:farbe, fillOpacity:.85, weight:2}).addTo(k);
     setTimeout(()=>k.invalidateSize(), 200);
   }, 60);
+}
+
+// traegt fuer einen bestehenden Mangel ohne Koordinaten den Kartenpunkt nach,
+// nuetzlich fuer Altfaelle oder wenn die Adresssuche beim Speichern nicht griff
+async function mangelStandortNachtragen(){
+  const m = ansichtMangel;
+  meldung('Kartenpunkt wird ermittelt …');
+  const erfolg = await adresseZuKoordinaten(m);
+  if(!erfolg){ meldung('Zu dieser Adresse wurde kein Kartenpunkt gefunden, bitte Schreibweise prüfen'); return; }
+  const voll = await speicherHolen('mangel:'+m.id);
+  if(voll){ voll.lat = m.lat; voll.lng = m.lng; await speicherSetzen('mangel:'+m.id, voll); }
+  const meta = mangelIndex.find(e=>e.id===m.id);
+  if(meta){ await speicherSetzen('mangelindex:'+m.id, {...meta, lat:m.lat, lng:m.lng}); }
+  await mangelIndexLaden();
+  meldung('Kartenpunkt wurde ergänzt');
+  zeige('mangelAnsicht');
 }
 
 let mangelLoeschBestaetigt = false;
@@ -2255,6 +2327,7 @@ async function mangelLoeschen(){
 
 // druckt einen einzelnen Mangel mit allen Fotos, gleiche Druckvorlage wie die Mängelliste
 function mangelDrucken(m){
+  meldung('PDF wird vorbereitet …');
   let bereich = document.getElementById('druckBereich');
   if(!bereich){ bereich = document.createElement('div'); bereich.id = 'druckBereich'; document.body.appendChild(bereich); }
   let html = `<div class="druck-kopf">Mangel, ${esc(m.kategorie || 'ohne Kategorie')}</div>
@@ -2271,7 +2344,7 @@ function mangelDrucken(m){
     </div>` : ''}`;
   bereich.innerHTML = html;
   document.title = 'Mangel_' + (m.kategorie || 'Eintrag').replace(/[^\wäöüÄÖÜß]+/g,'_') + '_' + m.datum;
-  setTimeout(()=>window.print(), 80);
+  druckStarten(bereich);
 }
 
 function zeichneAnsicht(){
@@ -2472,8 +2545,25 @@ async function stammLoeschenAusfuehren(liste, i){
    das braucht keine externe Bibliothek und funktioniert
    auch ohne Internetverbindung
    ===================================================== */
+// wartet bis alle Bilder im Druckbereich geladen sind und startet dann erst den Druck,
+// das verhindert das lange Haengen auf dem iPhone, wenn der Druck zu frueh ausgeloest wird
+function druckStarten(bereich){
+  const bilder = Array.from(bereich.querySelectorAll('img'));
+  const offene = bilder.filter(img=>!img.complete);
+  if(!offene.length){ setTimeout(()=>window.print(), 60); return; }
+  let fertig = 0, gestartet = false;
+  const los = ()=>{ if(!gestartet){ gestartet = true; setTimeout(()=>window.print(), 60); } };
+  offene.forEach(img=>{
+    img.addEventListener('load', ()=>{ if(++fertig>=offene.length) los(); });
+    img.addEventListener('error', ()=>{ if(++fertig>=offene.length) los(); });
+  });
+  // Sicherheitsnetz, spaetestens nach 4 Sekunden trotzdem drucken
+  setTimeout(los, 4000);
+}
+
 function berichtDrucken(b){
   if(!b){ meldung('Kein Besuch zum Drucken vorhanden'); return; }
+  meldung('PDF wird vorbereitet …');
   let bereich = document.getElementById('druckBereich');
   if(!bereich){
     bereich = document.createElement('div');
@@ -2482,7 +2572,7 @@ function berichtDrucken(b){
   }
   bereich.innerHTML = druckInhaltBauen(b);
   document.title = 'Pruefprotokoll_' + (b.kennung||'Projekt').replace(/[^\wäöüÄÖÜß]+/g,'_') + '_V' + b.revision;
-  setTimeout(()=>window.print(), 80);
+  druckStarten(bereich);
 }
 function druckInhaltBauen(b){
   const s = statusRechnen(b);
