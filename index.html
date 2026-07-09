@@ -234,7 +234,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V9, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V10, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -267,13 +267,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V9, Code Stand 09.07.2026
+   REVISIONSSTAND, V10, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V9';
+const APP_REVISION = 'V10';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -449,6 +449,18 @@ const MANGEL_FARBEN = {'Tiefbau':'#4DA3FF','Montage':'#FF8A3D','Dokumentation':'
 function esc(t){ return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function heute(){ return new Date().toISOString().slice(0,10); }
 function datumSchoen(iso){ if(!iso) return ''; const [j,m,t]=iso.split('-'); return `${t}.${m}.${j}`; }
+function zeitSchoen(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+// baut die Optionen fuer ein Filter Auswahlfeld, aus den Stammdaten UND aus den
+// bereits vorhandenen Eintraegen zusammen, so bleiben alte Eintraege filterbar,
+// auch wenn jemand aus Versehen etwas aus den Stammdaten geloescht hat
+function filterOptionen(stammdatenListe, indexListe, feld){
+  return [...new Set([...(stammdatenListe||[]), ...indexListe.map(e=>e[feld])])].filter(Boolean).sort();
+}
 function neueId(){ return 'b' + Date.now() + Math.floor(Math.random()*1000); }
 
 function leererBesuch(){
@@ -497,11 +509,9 @@ async function appStart(){
   const sd = await speicherHolen('stammdaten');
   if(sd){ stammdaten = sd; }
   else{
-    // ein paar Beispielwerte damit man direkt testen kann
-    stammdaten = {
-      kennungen:['P0001 Musterstadt Nord','P0002 Musterstadt Süd','P0003 Beispielhausen'],
-      firmen:['Firma A','Firma B','Firma C','Sonstige']
-    };
+    // bewusst keine Musterwerte, die Stammdaten starten leer und werden im
+    // Reiter Stammdaten von euch selbst befuellt
+    stammdaten = { kennungen:[], firmen:[] };
     await speicherSetzen('stammdaten', stammdaten);
   }
 
@@ -861,7 +871,7 @@ async function mangelSpeichern(){
   m.gespeichertAm = new Date().toISOString();
   await speicherSetzen('mangel:'+m.id, m);
   const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, datum:m.datum,
-    strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng};
+    strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
   meldung('Mangel wurde gespeichert');
@@ -1057,7 +1067,7 @@ async function besuchSpeichern(){
   // die Kurzinfo bekommt einen eigenen kleinen Schluessel statt einer gemeinsamen Liste
   const meta = {id:besuch.id, kennung:besuch.kennung, firma:besuch.firma, pruefer:besuch.pruefer,
     datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
-    lat:besuch.lat, lng:besuch.lng};
+    lat:besuch.lat, lng:besuch.lng, gespeichertAm:besuch.gespeichertAm};
   await speicherSetzen('index:'+besuch.id, meta, true);
   await indexAlleLaden();
   meldung('Besuch wurde als Logeintrag gespeichert, Revisionsstand V'+besuch.revision);
@@ -1068,25 +1078,77 @@ async function besuchSpeichern(){
 /* =====================================================
    Logbuch, gespeicherte Besuche
    ===================================================== */
+let logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+
 function zeichneLogbuch(){
-  let html = `<h2>Logbuch</h2>`;
+  const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
+  const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
+  const pruefer = [...new Set(logIndex.map(e=>e.pruefer).filter(Boolean))].sort();
+  const statusListe = ['Bestanden','Mängel vorhanden, Nacharbeit erforderlich',
+    'Kritisch, sofortige Maßnahme erforderlich','In Bearbeitung'];
+
+  const gefiltert = logIndex.filter(e=>{
+    if(logFilter.kennung && e.kennung!==logFilter.kennung) return false;
+    if(logFilter.firma && e.firma!==logFilter.firma) return false;
+    if(logFilter.pruefer && e.pruefer!==logFilter.pruefer) return false;
+    if(logFilter.status && e.status!==logFilter.status) return false;
+    if(logFilter.von && e.datum < logFilter.von) return false;
+    if(logFilter.bis && e.datum > logFilter.bis) return false;
+    return true;
+  });
+
+  let html = `<h2>Logbuch</h2>
+    <div class="karte-box">
+      <div class="eyebrow">Filter</div>
+      <div class="filter-box">
+        <div><label>Projektkenner</label>
+          <select onchange="logFilter.kennung=this.value; zeichneLogbuch()">
+            <option value="">Alle</option>
+            ${kennungen.map(k=>`<option ${logFilter.kennung===k?'selected':''}>${esc(k)}</option>`).join('')}
+          </select></div>
+        <div><label>Tiefbaufirma</label>
+          <select onchange="logFilter.firma=this.value; zeichneLogbuch()">
+            <option value="">Alle</option>
+            ${firmen.map(f=>`<option ${logFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Prüfer</label>
+          <select onchange="logFilter.pruefer=this.value; zeichneLogbuch()">
+            <option value="">Alle</option>
+            ${pruefer.map(p=>`<option ${logFilter.pruefer===p?'selected':''}>${esc(p)}</option>`).join('')}
+          </select></div>
+        <div><label>Status</label>
+          <select onchange="logFilter.status=this.value; zeichneLogbuch()">
+            <option value="">Alle</option>
+            ${statusListe.map(s=>`<option value="${esc(s)}" ${logFilter.status===s?'selected':''}>${esc(s)}</option>`).join('')}
+          </select></div>
+        <div><label>Von</label>
+          <input type="date" value="${logFilter.von}" onchange="logFilter.von=this.value; zeichneLogbuch()"></div>
+        <div><label>Bis</label>
+          <input type="date" value="${logFilter.bis}" onchange="logFilter.bis=this.value; zeichneLogbuch()"></div>
+      </div>
+      <button class="btn btn-leise" onclick="logFilterZuruecksetzen()">Filter zurücksetzen</button>
+    </div>`;
+
   if(!logIndex.length){
     html += `<div class="leer-hinweis">Noch keine Baustellenbesuche gespeichert<br>
       Über Start einen neuen Besuch beginnen</div>`;
   } else {
     html += `<button class="btn btn-leise" onclick="logbuchExportieren()">Als Excel Datei exportieren</button>`;
-    logIndex.forEach(e=>{
-      html += `<button class="log-karte" onclick="eintragOeffnen('${e.id}')">
+    html += gefiltert.length ? gefiltert.map(e=>`
+      <button class="log-karte" onclick="eintragOeffnen('${e.id}')">
         <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kennung)}</div>
-          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}, ${esc(e.status)}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
         </div>
         <div class="log-rev">V${e.revision}</div>
-      </button>`;
-    });
+      </button>`).join('') : '<div class="leer-hinweis">Kein Besuch passt zu diesen Filtern</div>';
   }
   document.getElementById('app').innerHTML = html;
+}
+function logFilterZuruecksetzen(){
+  logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+  zeichneLogbuch();
 }
 
 // baut aus dem Logbuch eine CSV Datei, die sich direkt in Excel oeffnen laesst,
@@ -1162,7 +1224,8 @@ function auswertungTabWechsel(tab){ auswertungTab = tab; zeichneAuswertungen(); 
 
 
 async function zeichneAuswertungenBesuche(){
-  const kennungen = [...new Set(logIndex.map(e=>e.kennung).filter(Boolean))].sort();
+  const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
+  const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
   const pruefer = [...new Set(logIndex.map(e=>e.pruefer).filter(Boolean))].sort();
   const statusListe = ['Bestanden','Mängel vorhanden, Nacharbeit erforderlich',
     'Kritisch, sofortige Maßnahme erforderlich','In Bearbeitung'];
@@ -1191,7 +1254,7 @@ async function zeichneAuswertungenBesuche(){
         <div><label>Tiefbaufirma</label>
           <select onchange="ausFilter.firma=this.value; zeichneAuswertungenBesuche()">
             <option value="">Alle</option>
-            ${stammdaten.firmen.map(f=>`<option ${ausFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+            ${firmen.map(f=>`<option ${ausFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
           </select></div>
         <div><label>Prüfer</label>
           <select onchange="ausFilter.pruefer=this.value; zeichneAuswertungenBesuche()">
@@ -1224,7 +1287,7 @@ async function zeichneAuswertungenBesuche(){
         <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
         <div class="log-info">
           <div class="k">${esc(e.kennung)}</div>
-          <div class="d">${esc(e.firma||'ohne Firma')}, ${esc(e.pruefer||'ohne Prüfer')}, ${datumSchoen(e.datum)}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${esc(e.pruefer||'ohne Prüfer')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}</div>
         </div>
         <div class="log-rev">V${e.revision}</div>
       </button>`).join('') : '<div class="leer-hinweis">Kein Besuch passt zu diesen Filtern</div>'}`;
@@ -1258,7 +1321,7 @@ async function zeichneAuswertungenBesuche(){
    Klassen gebaut statt den eigenen Klassen weiter oben
    ===================================================== */
 async function zeichneAuswertungenMaengel(){
-  const firmen = [...new Set(mangelIndex.map(e=>e.firma).filter(Boolean))].sort();
+  const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
   const gefiltert = mangelIndex.filter(e=>{
     if(mangelFilter.kategorie && e.kategorie!==mangelFilter.kategorie) return false;
     if(mangelFilter.firma && e.firma!==mangelFilter.firma) return false;
@@ -1339,7 +1402,7 @@ async function zeichneAuswertungenMaengel(){
         <div class="flex-1 min-w-0">
           <div class="text-xs font-bold uppercase tracking-wide" style="color:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}">${esc(e.kategorie||'ohne Kategorie')}</div>
           <div class="text-sm text-zinc-200 mt-0.5">${esc(e.firma||'ohne Firma')}</div>
-          <div class="text-xs text-zinc-500 mt-0.5">${datumSchoen(e.datum)}${e.ort ? ', '+esc(e.ort) : ''}</div>
+          <div class="text-xs text-zinc-500 mt-0.5">${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
         </div>
       </div>`).join('') : '<div class="text-center text-zinc-500 py-10 text-sm">Kein Mangel passt zu diesen Filtern</div>'}
     </div>`;
