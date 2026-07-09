@@ -234,7 +234,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V10, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V11, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -267,13 +267,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V10, Code Stand 09.07.2026
+   REVISIONSSTAND, V11, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V10';
+const APP_REVISION = 'V11';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -1078,9 +1078,77 @@ async function besuchSpeichern(){
 /* =====================================================
    Logbuch, gespeicherte Besuche
    ===================================================== */
+let logTyp = 'alle'; // 'alle', 'besuche' oder 'maengel'
 let logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+let logAlleFilter = {firma:'', von:'', bis:''};
+let logMangelFilter = {kategorie:'', firma:'', von:'', bis:''};
 
 function zeichneLogbuch(){
+  document.getElementById('app').innerHTML = `
+    <h2>Logbuch</h2>
+    <div class="tab-reihe" style="margin-bottom:14px">
+      <button id="logTabAlle" onclick="logTypWechsel('alle')">Alle</button>
+      <button id="logTabBesuche" onclick="logTypWechsel('besuche')">Besuche</button>
+      <button id="logTabMaengel" onclick="logTypWechsel('maengel')">Mängel</button>
+    </div>
+    <div id="logbuchInhalt"></div>`;
+  ['logTabAlle','logTabBesuche','logTabMaengel'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
+  document.getElementById('logTab'+logTyp.charAt(0).toUpperCase()+logTyp.slice(1)).classList.add('aktiv');
+  if(logTyp==='besuche') zeichneLogbuchBesuche();
+  else if(logTyp==='maengel') zeichneLogbuchMaengel();
+  else zeichneLogbuchAlle();
+}
+function logTypWechsel(t){ logTyp = t; zeichneLogbuch(); }
+
+// Reiter Alle, Besuche und Mängel gemeinsam, chronologisch, mit Kennzeichnung je Zeile
+function zeichneLogbuchAlle(){
+  const firmen = filterOptionen(stammdaten.firmen, [...logIndex, ...mangelIndex], 'firma');
+  const kombiniert = [
+    ...logIndex.map(e=>({...e, _typ:'besuch'})),
+    ...mangelIndex.map(e=>({...e, _typ:'mangel'}))
+  ].filter(e=>{
+    if(logAlleFilter.firma && e.firma!==logAlleFilter.firma) return false;
+    if(logAlleFilter.von && e.datum < logAlleFilter.von) return false;
+    if(logAlleFilter.bis && e.datum > logAlleFilter.bis) return false;
+    return true;
+  }).sort((a,b)=>(b.gespeichertAm||b.datum||'').localeCompare(a.gespeichertAm||a.datum||''));
+
+  document.getElementById('logbuchInhalt').innerHTML = `
+    <div class="karte-box">
+      <div class="eyebrow">Filter</div>
+      <div class="filter-box">
+        <div><label>Tiefbaufirma</label>
+          <select onchange="logAlleFilter.firma=this.value; zeichneLogbuchAlle()">
+            <option value="">Alle</option>
+            ${firmen.map(f=>`<option ${logAlleFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Von</label>
+          <input type="date" value="${logAlleFilter.von}" onchange="logAlleFilter.von=this.value; zeichneLogbuchAlle()"></div>
+        <div><label>Bis</label>
+          <input type="date" value="${logAlleFilter.bis}" onchange="logAlleFilter.bis=this.value; zeichneLogbuchAlle()"></div>
+      </div>
+      <button class="btn btn-leise" onclick="logAlleFilter={firma:'',von:'',bis:''}; zeichneLogbuchAlle()">Filter zurücksetzen</button>
+    </div>
+    ${kombiniert.length ? kombiniert.map(e=>e._typ==='besuch' ? `
+      <button class="log-karte" onclick="eintragOeffnen('${e.id}')">
+        <div class="log-punkt" style="background:${statusFarbe(e.klasse)}"></div>
+        <div class="log-info">
+          <div class="k">${esc(e.kennung)} <span style="color:var(--amber);font-size:10px;font-weight:700;letter-spacing:.5px;margin-left:6px">BESUCH</span></div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
+        </div>
+        <div class="log-rev">V${e.revision}</div>
+      </button>` : `
+      <div class="log-karte" style="cursor:default">
+        <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
+        <div class="log-info">
+          <div class="k">${esc(e.kategorie||'Mangel')} <span style="color:var(--sicher);font-size:10px;font-weight:700;letter-spacing:.5px;margin-left:6px">MANGEL</span></div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
+        </div>
+      </div>`).join('') : '<div class="leer-hinweis">Kein Eintrag passt zu diesen Filtern</div>'}`;
+}
+
+// Reiter Besuche, wie bisher, mit vollem Filtersatz
+function zeichneLogbuchBesuche(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
   const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
   const pruefer = [...new Set(logIndex.map(e=>e.pruefer).filter(Boolean))].sort();
@@ -1097,34 +1165,33 @@ function zeichneLogbuch(){
     return true;
   });
 
-  let html = `<h2>Logbuch</h2>
-    <div class="karte-box">
+  let html = `<div class="karte-box">
       <div class="eyebrow">Filter</div>
       <div class="filter-box">
         <div><label>Projektkenner</label>
-          <select onchange="logFilter.kennung=this.value; zeichneLogbuch()">
+          <select onchange="logFilter.kennung=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
             ${kennungen.map(k=>`<option ${logFilter.kennung===k?'selected':''}>${esc(k)}</option>`).join('')}
           </select></div>
         <div><label>Tiefbaufirma</label>
-          <select onchange="logFilter.firma=this.value; zeichneLogbuch()">
+          <select onchange="logFilter.firma=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
             ${firmen.map(f=>`<option ${logFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
           </select></div>
         <div><label>Prüfer</label>
-          <select onchange="logFilter.pruefer=this.value; zeichneLogbuch()">
+          <select onchange="logFilter.pruefer=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
             ${pruefer.map(p=>`<option ${logFilter.pruefer===p?'selected':''}>${esc(p)}</option>`).join('')}
           </select></div>
         <div><label>Status</label>
-          <select onchange="logFilter.status=this.value; zeichneLogbuch()">
+          <select onchange="logFilter.status=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
             ${statusListe.map(s=>`<option value="${esc(s)}" ${logFilter.status===s?'selected':''}>${esc(s)}</option>`).join('')}
           </select></div>
         <div><label>Von</label>
-          <input type="date" value="${logFilter.von}" onchange="logFilter.von=this.value; zeichneLogbuch()"></div>
+          <input type="date" value="${logFilter.von}" onchange="logFilter.von=this.value; zeichneLogbuchBesuche()"></div>
         <div><label>Bis</label>
-          <input type="date" value="${logFilter.bis}" onchange="logFilter.bis=this.value; zeichneLogbuch()"></div>
+          <input type="date" value="${logFilter.bis}" onchange="logFilter.bis=this.value; zeichneLogbuchBesuche()"></div>
       </div>
       <button class="btn btn-leise" onclick="logFilterZuruecksetzen()">Filter zurücksetzen</button>
     </div>`;
@@ -1144,11 +1211,98 @@ function zeichneLogbuch(){
         <div class="log-rev">V${e.revision}</div>
       </button>`).join('') : '<div class="leer-hinweis">Kein Besuch passt zu diesen Filtern</div>';
   }
-  document.getElementById('app').innerHTML = html;
+  document.getElementById('logbuchInhalt').innerHTML = html;
 }
 function logFilterZuruecksetzen(){
   logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
-  zeichneLogbuch();
+  zeichneLogbuchBesuche();
+}
+
+// Reiter Mängel, eigener Filtersatz, dazu die Mängelliste als PDF für Dienstleister
+function zeichneLogbuchMaengel(){
+  const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
+  const gefiltert = mangelIndex.filter(e=>{
+    if(logMangelFilter.kategorie && e.kategorie!==logMangelFilter.kategorie) return false;
+    if(logMangelFilter.firma && e.firma!==logMangelFilter.firma) return false;
+    if(logMangelFilter.von && e.datum < logMangelFilter.von) return false;
+    if(logMangelFilter.bis && e.datum > logMangelFilter.bis) return false;
+    return true;
+  });
+
+  document.getElementById('logbuchInhalt').innerHTML = `
+    <div class="karte-box">
+      <div class="eyebrow">Filter</div>
+      <div class="filter-box">
+        <div><label>Kategorie</label>
+          <select onchange="logMangelFilter.kategorie=this.value; zeichneLogbuchMaengel()">
+            <option value="">Alle</option>
+            ${MANGEL_KATEGORIEN.map(k=>`<option ${logMangelFilter.kategorie===k?'selected':''}>${esc(k)}</option>`).join('')}
+          </select></div>
+        <div><label>Tiefbaufirma</label>
+          <select onchange="logMangelFilter.firma=this.value; zeichneLogbuchMaengel()">
+            <option value="">Alle</option>
+            ${firmen.map(f=>`<option ${logMangelFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Von</label>
+          <input type="date" value="${logMangelFilter.von}" onchange="logMangelFilter.von=this.value; zeichneLogbuchMaengel()"></div>
+        <div><label>Bis</label>
+          <input type="date" value="${logMangelFilter.bis}" onchange="logMangelFilter.bis=this.value; zeichneLogbuchMaengel()"></div>
+      </div>
+      <button class="btn btn-leise" onclick="logMangelFilterZuruecksetzen()">Filter zurücksetzen</button>
+    </div>
+    <button class="btn btn-amber" onclick="maengellisteDrucken()">Mängelliste als PDF, ${gefiltert.length} Einträge</button>
+    ${gefiltert.length ? gefiltert.map(e=>`
+      <div class="log-karte" style="cursor:default">
+        <div class="log-punkt" style="background:${MANGEL_FARBEN[e.kategorie]||'#FFB020'}"></div>
+        <div class="log-info">
+          <div class="k">${esc(e.kategorie||'ohne Kategorie')}</div>
+          <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}</div>
+        </div>
+      </div>`).join('') : '<div class="leer-hinweis">Kein Mangel passt zu diesen Filtern</div>'}`;
+}
+function logMangelFilterZuruecksetzen(){
+  logMangelFilter = {kategorie:'', firma:'', von:'', bis:''};
+  zeichneLogbuchMaengel();
+}
+
+// baut aus den gerade gefilterten Mängeln eine druckbare Liste, dafuer werden die
+// vollen Datensaetze inklusive Foto nachgeladen, gedacht zum Aushaendigen an Dienstleister
+async function maengellisteDrucken(){
+  const gefiltert = mangelIndex.filter(e=>{
+    if(logMangelFilter.kategorie && e.kategorie!==logMangelFilter.kategorie) return false;
+    if(logMangelFilter.firma && e.firma!==logMangelFilter.firma) return false;
+    if(logMangelFilter.von && e.datum < logMangelFilter.von) return false;
+    if(logMangelFilter.bis && e.datum > logMangelFilter.bis) return false;
+    return true;
+  });
+  if(!gefiltert.length){ meldung('Keine Mängel für diese Auswahl'); return; }
+  meldung('Mängelliste wird vorbereitet …');
+  const volle = [];
+  for(const e of gefiltert){
+    const m = await speicherHolen('mangel:'+e.id);
+    if(m) volle.push(m);
+  }
+  let bereich = document.getElementById('druckBereich');
+  if(!bereich){ bereich = document.createElement('div'); bereich.id = 'druckBereich'; document.body.appendChild(bereich); }
+
+  const zusatz = logMangelFilter.firma ? ', '+logMangelFilter.firma
+    : logMangelFilter.kategorie ? ', '+logMangelFilter.kategorie : '';
+  let html = `<div class="druck-kopf">Mängelliste${esc(zusatz)}</div>
+    <table class="druck-info">
+      <tr><td>Anzahl Mängel</td><td>${volle.length}</td></tr>
+      <tr><td>Erstellt am</td><td>${datumSchoen(heute())}</td></tr>
+    </table>`;
+  volle.forEach((m,i)=>{
+    html += `<div class="druck-frage">
+      <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
+      ${(m.strasse||m.ort) ? `<div class="druck-kommentar">Ort, ${esc([m.strasse,m.ort].filter(Boolean).join(', '))}</div>` : ''}
+      ${m.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(m.kommentar)}</div>` : ''}
+      ${m.foto ? `<img class="druck-foto" src="${m.foto}">` : ''}
+    </div>`;
+  });
+  bereich.innerHTML = html;
+  document.title = 'Maengelliste_' + heute();
+  setTimeout(()=>window.print(), 80);
 }
 
 // baut aus dem Logbuch eine CSV Datei, die sich direkt in Excel oeffnen laesst,
