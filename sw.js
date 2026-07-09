@@ -2,9 +2,9 @@
 // Netzwerk zuerst, Cache nur als Rueckfallebene ohne Internet, so ist beim naechsten
 // Aufruf mit Internet immer automatisch die neueste Version zu sehen, ganz ohne
 // Websitedaten loeschen oder zweimal neu laden
-// REVISIONSSTAND, V13, Code Stand 09.07.2026
+// REVISIONSSTAND, V14, Code Stand 09.07.2026
 // Bei jeder Aenderung an index.html diesen Namen mit hochzaehlen
-const CACHE_NAME = 'baustellen-check-v13';
+const CACHE_NAME = 'baustellen-check-v14';
 const EIGENE_SEITE = './index.html';
 
 self.addEventListener('install', event => {

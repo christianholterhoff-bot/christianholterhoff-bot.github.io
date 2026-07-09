@@ -238,7 +238,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V13, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V14, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -271,13 +271,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V13, Code Stand 09.07.2026
+   REVISIONSSTAND, V14, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V13';
+const APP_REVISION = 'V14';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -917,10 +917,18 @@ async function mangelSpeichern(){
   const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
   if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
   m.gespeichertAm = new Date().toISOString();
-  await speicherSetzen('mangel:'+m.id, m);
+  const fotos = m.fotos || [];
+  // jedes Foto einzeln speichern, sonst wird ein Mangel mit mehreren Fotos schnell
+  // zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
+  for(let i=0; i<fotos.length; i++){
+    await speicherSetzen('mangelfoto:'+m.id+':'+i, {daten:fotos[i]});
+  }
+  const mangelZumSpeichern = {...m, fotos:undefined, fotoAnzahl:fotos.length};
+  delete mangelZumSpeichern.fotos;
+  await speicherSetzen('mangel:'+m.id, mangelZumSpeichern);
   const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, datum:m.datum,
     strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
-    fotoAnzahl:(m.fotos||[]).length};
+    fotoAnzahl:fotos.length};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
   meldung('Mangel wurde gespeichert');
@@ -1111,8 +1119,17 @@ function zeichneAbschluss(){
 async function besuchSpeichern(){
   const s = statusRechnen(besuch);
   besuch.gespeichertAm = new Date().toISOString();
-  // kompletten Besuch dauerhaft auf dem Geraet speichern
-  await speicherSetzen('besuch:'+besuch.id, besuch, true);
+  // Fotos einzeln separat speichern, sonst wird ein Besuch mit mehreren Fotos
+  // schnell zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
+  const besuchZumSpeichern = JSON.parse(JSON.stringify(besuch));
+  for(const nr in besuchZumSpeichern.antworten){
+    const a = besuchZumSpeichern.antworten[nr];
+    if(a && a.foto){
+      await speicherSetzen('besuchfoto:'+besuch.id+':'+nr, {daten:a.foto}, true);
+      a.foto = true; // nur ein Merker, das Bild selbst liegt jetzt separat
+    }
+  }
+  await speicherSetzen('besuch:'+besuch.id, besuchZumSpeichern, true);
   // die Kurzinfo bekommt einen eigenen kleinen Schluessel statt einer gemeinsamen Liste
   const meta = {id:besuch.id, kennung:besuch.kennung, firma:besuch.firma, pruefer:besuch.pruefer,
     datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
@@ -1329,7 +1346,7 @@ async function maengellisteDrucken(){
   const volle = [];
   for(const e of gefiltert){
     const m = await speicherHolen('mangel:'+e.id);
-    if(m) volle.push(m);
+    if(m){ m.fotos = await mangelFotosLaden(e.id, m.fotoAnzahl); volle.push(m); }
   }
   let bereich = document.getElementById('druckBereich');
   if(!bereich){ bereich = document.createElement('div'); bereich.id = 'druckBereich'; document.body.appendChild(bereich); }
@@ -1759,6 +1776,14 @@ function ausFilterZuruecksetzen(){
 async function eintragOeffnen(id){
   const b = await speicherHolen('besuch:'+id, true);
   if(!b){ meldung('Eintrag konnte nicht geladen werden'); return; }
+  // Fotos je Frage liegen separat, hier fuer die Anzeige wieder zusammenfuehren
+  for(const nr in b.antworten){
+    const a = b.antworten[nr];
+    if(a && a.foto === true){
+      const f = await speicherHolen('besuchfoto:'+id+':'+nr, true);
+      a.foto = f ? f.daten : null;
+    }
+  }
   ansichtBesuch = b;
   zeige('ansicht');
 }
@@ -1769,9 +1794,19 @@ async function eintragOeffnen(id){
 async function mangelOeffnen(id, herkunft){
   const m = await speicherHolen('mangel:'+id);
   if(!m){ meldung('Mangel konnte nicht geladen werden'); return; }
+  m.fotos = await mangelFotosLaden(id, m.fotoAnzahl);
   ansichtMangel = m;
   mangelAnsichtHerkunft = herkunft || 'logbuch';
   zeige('mangelAnsicht');
+}
+// laedt die einzeln gespeicherten Fotos eines Mangels wieder zusammen
+async function mangelFotosLaden(id, anzahl){
+  const fotos = [];
+  for(let i=0; i<(anzahl||0); i++){
+    const f = await speicherHolen('mangelfoto:'+id+':'+i);
+    if(f) fotos.push(f.daten);
+  }
+  return fotos;
 }
 
 function zeichneMangelAnsicht(){
@@ -1830,6 +1865,9 @@ function mangelLoeschenAnfragen(){
   }
 }
 async function mangelLoeschen(){
+  for(let i=0; i<(ansichtMangel.fotoAnzahl||0); i++){
+    await speicherLoeschen('mangelfoto:'+ansichtMangel.id+':'+i);
+  }
   await speicherLoeschen('mangel:'+ansichtMangel.id, true);
   await speicherLoeschen('mangelindex:'+ansichtMangel.id, true);
   await mangelIndexLaden();
@@ -1943,6 +1981,11 @@ function loeschenAnfragen(){
   }
 }
 async function eintragLoeschen(){
+  for(const nr in ansichtBesuch.antworten){
+    if(ansichtBesuch.antworten[nr] && ansichtBesuch.antworten[nr].foto){
+      await speicherLoeschen('besuchfoto:'+ansichtBesuch.id+':'+nr, true);
+    }
+  }
   await speicherLoeschen('besuch:'+ansichtBesuch.id, true);
   await speicherLoeschen('index:'+ansichtBesuch.id, true);
   await indexAlleLaden();
