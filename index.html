@@ -14,6 +14,7 @@
 <!-- Tailwind nur fuer neu gebaute Bereiche wie die Mängelauswertung, das bestehende
      dunkle Design bleibt bei den eigenen Klassen weiter unten in dieser Datei -->
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -206,6 +207,7 @@ nav button.aktiv{color:var(--amber);}
 .stat-reihe .karte-box{flex:1; margin:0; padding:10px 12px;}
 .hinweis{font-size:13px; color:var(--schrift2); line-height:1.5; margin-top:10px;}
 #druckBereich{display:none;}
+#teilenKarte{position:fixed; left:-9999px; top:0; width:640px;}
 @media print{
   body *{visibility:hidden;}
   #druckBereich, #druckBereich *{visibility:visible;}
@@ -246,6 +248,8 @@ nav button.aktiv{color:var(--amber);}
 .log-karte-reihe .log-karte{margin-bottom:0; flex:1;}
 .behoben-knopf{flex-shrink:0; padding:0 14px; border-radius:10px; background:transparent; border:1px solid var(--ja);
   color:var(--ja); font-weight:600; font-size:13px;}
+.wiederoeffnen-knopf{flex-shrink:0; padding:0 14px; border-radius:10px; background:transparent; border:1px solid #FF8A3D;
+  color:#FF8A3D; font-weight:600; font-size:13px;}
 .behoben-marke{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.5px; color:var(--ja);
   border:1px solid var(--ja); border-radius:5px; padding:2px 6px; margin-left:6px; text-transform:uppercase;}
 .farb-legende{display:flex; flex-wrap:wrap; gap:10px 16px; padding:12px 14px; margin-bottom:14px;
@@ -260,7 +264,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V18, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V20, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -293,13 +297,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V18, Code Stand 09.07.2026
+   REVISIONSSTAND, V20, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V18';
+const APP_REVISION = 'V20';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -594,6 +598,19 @@ function statusRechnen(b){
   else { status='Bestanden'; klasse='gruen'; }
   return {ja, nein, nb, kritisch, beantwortet, status, klasse};
 }
+// legt auf eine Leaflet Karte einen kleinen Umschalter, um zwischen normaler
+// Straßenkarte und der amtlichen NRW Katasterkarte (Liegenschaftskarte, Flurstuecke)
+// zu wechseln, Quelle Geobasis NRW, nur innerhalb von NRW mit Daten hinterlegt
+function ebenenUmschalterHinzufuegen(karte){
+  const strassenkarte = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'© OpenStreetMap Mitwirkende', maxZoom:19}).addTo(karte);
+  const katasterkarte = L.tileLayer.wms('https://www.wms.nrw.de/geobasis/wms_nw_alkis_grau', {
+    layers:'WMS_NW_ALKIS_GRAU', format:'image/png', version:'1.3.0', transparent:false,
+    maxZoom:19, attribution:'© Geobasis NRW'});
+  L.control.layers({'Straßenkarte':strassenkarte, 'Katasterkarte, NRW':katasterkarte}, null,
+    {position:'topright', collapsed:true}).addTo(karte);
+}
+
 function statusFarbe(klasse){
   return klasse==='rot' ? '#E5484D' : klasse==='gelb' ? '#FFB020' : klasse==='gruen' ? '#3FB966' : '#93A0AD';
 }
@@ -722,8 +739,7 @@ function startKarteBauen(){
     return;
   }
   startKarte = L.map('startKarte');
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {attribution:'© OpenStreetMap'}).addTo(startKarte);
+  ebenenUmschalterHinzufuegen(startKarte);
   const mitOrt = logIndex.filter(e=>e.lat && e.lng);
   const mangelMitOrt = mangelIndex.filter(e=>e.lat && e.lng);
   const gruppe = [];
@@ -1327,7 +1343,7 @@ function mangelKarteHtml(e, herkunft){
         <div class="d">${esc(e.firma||'ohne Firma')}, erfasst ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
       </div>
     </button>
-    ${e.behoben ? '' : `<button class="behoben-knopf" onclick="mangelBehobenAnfragen('${e.id}')">Behoben</button>`}
+    ${e.behoben ? `<button class="wiederoeffnen-knopf" onclick="mangelWiederOeffnenAnfragen('${e.id}')">Wieder öffnen</button>` : `<button class="behoben-knopf" onclick="mangelBehobenAnfragen('${e.id}')">Behoben</button>`}
     <button class="pdf-knopf" title="Bericht als PDF" onclick="mangelDirektDrucken('${e.id}')">📄</button>
   </div>`;
 }
@@ -1553,7 +1569,34 @@ async function mangelAlsBehoben(id){
     await speicherSetzen('mangelindex:'+id, neu);
   }
   await mangelIndexLaden();
+  if(ansichtMangel && ansichtMangel.id===id){ ansichtMangel.behoben = true; ansichtMangel.behobenAm = m.behobenAm; }
   meldung('Mangel wurde als behoben markiert');
+  zeige(aktuellerScreen);
+}
+
+// Mangel wieder öffnen, mit Bestaetigungsfenster davor, falls die Behoben Markierung
+// zu frueh gesetzt wurde oder der Mangel doch nicht vollstaendig erledigt ist
+function mangelWiederOeffnenAnfragen(id){
+  const e = mangelIndex.find(x=>x.id===id);
+  bestaetigung('Mangel wieder öffnen',
+    'Soll dieser Mangel'+(e && e.kategorie ? ' der Kategorie '+e.kategorie : '')+' wieder als offen markiert werden? Er erscheint danach wieder orange und zählt wieder als noch zu erledigen.',
+    'Wieder öffnen',
+    ()=>mangelWiederOeffnen(id));
+}
+async function mangelWiederOeffnen(id){
+  const m = await speicherHolen('mangel:'+id);
+  if(!m){ meldung('Mangel konnte nicht geladen werden'); return; }
+  m.behoben = false;
+  m.behobenAm = null;
+  await speicherSetzen('mangel:'+id, m);
+  const meta = mangelIndex.find(e=>e.id===id);
+  if(meta){
+    const neu = {...meta, behoben:false, behobenAm:null};
+    await speicherSetzen('mangelindex:'+id, neu);
+  }
+  await mangelIndexLaden();
+  if(ansichtMangel && ansichtMangel.id===id){ ansichtMangel.behoben = false; ansichtMangel.behobenAm = null; }
+  meldung('Mangel wurde wieder geöffnet');
   zeige(aktuellerScreen);
 }
 
@@ -2241,7 +2284,7 @@ function zeichneMangelAnsicht(){
       <div class="titel">${m.behoben ? 'Behoben' : 'Offen'}${m.kategorie ? ', '+esc(m.kategorie) : ''}</div>
       <div class="unter">${esc(m.firma || 'ohne Firma')}, erfasst ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.geaendertAm ? ', zuletzt geändert '+datumSchoen(m.geaendertAm.slice(0,10))+', '+zeitSchoen(m.geaendertAm)+' Uhr' : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
     </div>
-    ${m.behoben ? '' : '<button class="btn btn-amber" onclick="mangelBehobenAnfragen(ansichtMangel.id)">Als behoben markieren</button>'}
+    ${m.behoben ? '<button class="btn btn-leise" onclick="mangelWiederOeffnenAnfragen(ansichtMangel.id)">Mangel wieder öffnen</button>' : '<button class="btn btn-amber" onclick="mangelBehobenAnfragen(ansichtMangel.id)">Als behoben markieren</button>'}
     ${(m.strasse || m.ort || (m.lat && m.lng)) ? `
     <div class="karte-box">
       <div class="eyebrow">Standort</div>
@@ -2263,6 +2306,7 @@ function zeichneMangelAnsicht(){
       <button class="btn" onclick="mangelBearbeiten()">Bearbeiten</button>
     </div>
     <button class="btn btn-amber" onclick="mangelDrucken(ansichtMangel)">Als PDF sichern</button>
+    <button class="btn" onclick="mangelAlsBildTeilen()">Als Bild teilen, WhatsApp oder Email</button>
     <button class="btn btn-rot" id="mangelLoeschKnopf" onclick="mangelLoeschenAnfragen()">Mangel löschen</button>`;
   if(m.lat && m.lng) setTimeout(()=>{
     const kEl = document.getElementById('mangelAnsichtKarte');
@@ -2272,7 +2316,7 @@ function zeichneMangelAnsicht(){
       return;
     }
     const k = L.map('mangelAnsichtKarte').setView([m.lat, m.lng], 16);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(k);
+    ebenenUmschalterHinzufuegen(k);
     L.circleMarker([m.lat, m.lng], {radius:9, color:farbe, fillColor:farbe, fillOpacity:.85, weight:2}).addTo(k);
     setTimeout(()=>k.invalidateSize(), 200);
   }, 60);
@@ -2346,6 +2390,61 @@ function mangelDrucken(m){
   druckStarten(bereich);
 }
 
+// baut aus einem Mangel eine saubere Bildkarte und oeffnet damit, wenn moeglich,
+// direkt den Teilen Dialog des Geraets, sonst wird das Bild heruntergeladen
+async function mangelAlsBildTeilen(){
+  const m = ansichtMangel;
+  meldung('Bild wird vorbereitet …');
+  let karte = document.getElementById('teilenKarte');
+  if(!karte){ karte = document.createElement('div'); karte.id = 'teilenKarte'; document.body.appendChild(karte); }
+  const farbe = m.behoben ? '#3FB966' : '#FF8A3D';
+  karte.innerHTML = `
+    <div style="background:#ffffff; color:#14171B; font-family:'Barlow','Barlow Semi Condensed',sans-serif; padding:26px; border-radius:14px;">
+      <div style="font-size:13px; color:#6b7280; margin-bottom:6px;">PL Christian Holterhoff, Baustellen QS</div>
+      <div style="font-size:30px; font-weight:700; margin-bottom:10px;">${esc(m.kategorie || 'Mangel')}</div>
+      <div style="display:inline-block; padding:5px 14px; border-radius:8px; font-size:14px; font-weight:700; color:#ffffff; background:${farbe}; margin-bottom:18px;">${m.behoben ? 'Behoben' : 'Offen'}</div>
+      <div style="font-size:16px; line-height:1.8;">
+        <div><b>Tiefbaufirma</b>, ${esc(m.firma || 'ohne Firma')}</div>
+        <div><b>Datum</b>, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
+        ${(m.strasse || m.ort) ? `<div><b>Standort</b>, ${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</div>` : ''}
+        ${m.eintrager ? `<div><b>Eintragung durch</b>, ${esc(m.eintrager)}</div>` : ''}
+      </div>
+      ${m.kommentar ? `<div style="font-size:16px; margin-top:16px; padding:14px; background:#F3F4F6; border-radius:10px;">${esc(m.kommentar)}</div>` : ''}
+      ${(m.fotos && m.fotos.length) ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:18px;">
+        ${m.fotos.map(f=>`<img src="${f}" style="width:180px; height:180px; object-fit:cover; border-radius:10px;">`).join('')}
+      </div>` : ''}
+    </div>`;
+  // warten, bis alle Fotos in der Bildkarte auch wirklich fertig geladen sind
+  const bilder = [...karte.querySelectorAll('img')];
+  await Promise.all(bilder.map(img => img.complete ? Promise.resolve() : new Promise(res=>{ img.onload=res; img.onerror=res; })));
+  try{
+    const canvas = await html2canvas(karte, {backgroundColor:'#ffffff', scale:2});
+    canvas.toBlob(async blob=>{
+      if(!blob){ meldung('Bild konnte nicht erstellt werden'); return; }
+      const dateiname = 'Mangel_' + (m.kategorie || 'Eintrag').replace(/[^\wäöüÄÖÜß]+/g,'_') + '_' + m.datum + '.png';
+      const datei = new File([blob], dateiname, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[datei]})){
+        try{
+          await navigator.share({files:[datei], title:'Mangel, '+(m.kategorie||''),
+            text:(m.firma||'ohne Firma')+', '+datumSchoen(m.datum)});
+        }catch(fehler){
+          if(fehler && fehler.name !== 'AbortError') meldung('Teilen wurde nicht abgeschlossen');
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = dateiname;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        meldung('Bild wurde heruntergeladen, jetzt in WhatsApp oder Mail anhängen');
+      }
+    }, 'image/png');
+  }catch(fehler){
+    console.error(fehler);
+    meldung('Bild konnte nicht erstellt werden');
+  }
+}
+
 function zeichneAnsicht(){
   const b = ansichtBesuch;
   const s = statusRechnen(b);
@@ -2402,7 +2501,7 @@ function zeichneAnsicht(){
       return;
     }
     ansichtKarte = L.map('ansichtKarte').setView([b.lat, b.lng], 16);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(ansichtKarte);
+    ebenenUmschalterHinzufuegen(ansichtKarte);
     L.circleMarker([b.lat, b.lng],{radius:10,color:statusFarbe(s.klasse),fillColor:statusFarbe(s.klasse),fillOpacity:.85}).addTo(ansichtKarte);
     setTimeout(()=>ansichtKarte.invalidateSize(),200);
   }, 60);
