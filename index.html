@@ -264,7 +264,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V20, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V21, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -297,13 +297,13 @@ nav button.aktiv{color:var(--amber);}
 <script>
 /* =====================================================
    PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V20, Code Stand 09.07.2026
+   REVISIONSSTAND, V21, Code Stand 09.07.2026
    Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
    in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
    wegen der Offline Zwischenspeicherung weiter die alte Version
    Alles in einer Datei, Kommentare bewusst einfach gehalten
    ===================================================== */
-const APP_REVISION = 'V20';
+const APP_REVISION = 'V21';
 
 // ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
 // sicher bedeutet, die Frage ist sicherheitsrelevant,
@@ -479,6 +479,7 @@ function stammdatenEchtzeitStarten(){
       stammdaten = snap.data();
       if(!Array.isArray(stammdaten.kategorien)) stammdaten.kategorien = ['Tiefbau','Montage','Dokumentation'];
       if(!Array.isArray(stammdaten.pruefer)) stammdaten.pruefer = [];
+      if(!Array.isArray(stammdaten.subunternehmer)) stammdaten.subunternehmer = [];
       if(['projekt','mangel','stammdaten','logbuch','auswertungen'].includes(aktuellerScreen)) zeige(aktuellerScreen);
     }
   }, err=>{
@@ -510,11 +511,13 @@ const MANGEL_FARBEN = {'Tiefbau':'#4DA3FF','Montage':'#FF8A3D','Dokumentation':'
 // generisches Auswahlfeld mit der Option, direkt einen neuen Eintrag anzulegen,
 // der landet dann dauerhaft in den Stammdaten, kein Umweg ueber den Stammdaten Reiter
 const AUSWAHL_KONTEXT = {
-  besuchFirma:     { liste:'firmen',     setzen:w=>{besuch.firma=w;},         neuZeichnen:()=>zeichneProjekt() },
-  besuchPruefer:   { liste:'pruefer',    setzen:w=>{besuch.pruefer=w;},       neuZeichnen:()=>zeichneProjekt() },
-  mangelFirma:     { liste:'firmen',     setzen:w=>{mangelEntwurf.firma=w;},     neuZeichnen:()=>zeichneMangel() },
-  mangelKategorie: { liste:'kategorien', setzen:w=>{mangelEntwurf.kategorie=w;}, neuZeichnen:()=>zeichneMangel() },
-  mangelEintrager: { liste:'pruefer',    setzen:w=>{mangelEntwurf.eintrager=w;}, neuZeichnen:()=>zeichneMangel() },
+  besuchFirma:          { liste:'firmen',        setzen:w=>{besuch.firma=w; if(besuch.keinSubunternehmer) besuch.subunternehmer=w;}, neuZeichnen:()=>zeichneProjekt() },
+  besuchPruefer:        { liste:'pruefer',       setzen:w=>{besuch.pruefer=w;},            neuZeichnen:()=>zeichneProjekt() },
+  besuchSubunternehmer: { liste:'subunternehmer',setzen:w=>{besuch.subunternehmer=w;},     neuZeichnen:()=>zeichneProjekt() },
+  mangelFirma:          { liste:'firmen',        setzen:w=>{mangelEntwurf.firma=w; if(mangelEntwurf.keinSubunternehmer) mangelEntwurf.subunternehmer=w;}, neuZeichnen:()=>zeichneMangel() },
+  mangelKategorie:      { liste:'kategorien',    setzen:w=>{mangelEntwurf.kategorie=w;},    neuZeichnen:()=>zeichneMangel() },
+  mangelEintrager:      { liste:'pruefer',       setzen:w=>{mangelEntwurf.eintrager=w;},    neuZeichnen:()=>zeichneMangel() },
+  mangelSubunternehmer: { liste:'subunternehmer',setzen:w=>{mangelEntwurf.subunternehmer=w;}, neuZeichnen:()=>zeichneMangel() },
 };
 function auswahlMitNeuHtml(kontextName, liste, aktuellerWert){
   return `
@@ -551,6 +554,14 @@ async function neuEintragBestaetigen(kontextName){
   kontext.neuZeichnen();
 }
 
+// Kein separater Subunternehmer, dann zaehlt die eigene Tiefbaufirma als Subunternehmer
+function keinSubunternehmerUmschalten(typ){
+  const ziel = typ==='besuch' ? besuch : mangelEntwurf;
+  ziel.keinSubunternehmer = !ziel.keinSubunternehmer;
+  if(ziel.keinSubunternehmer) ziel.subunternehmer = ziel.firma;
+  if(typ==='besuch') zeichneProjekt(); else zeichneMangel();
+}
+
 // ---------- Hilfen ----------
 function esc(t){ return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function heute(){ return new Date().toISOString().slice(0,10); }
@@ -570,12 +581,12 @@ function filterOptionen(stammdatenListe, indexListe, feld){
 function neueId(){ return 'b' + Date.now() + Math.floor(Math.random()*1000); }
 
 function leererBesuch(){
-  return { id:neueId(), kennung:'', firma:'', pruefer:'', datum:heute(), revision:1,
-    strasse:'', ort:'', lat:null, lng:null, antworten:{}, gespeichertAm:null };
+  return { id:neueId(), kennung:'', firma:'', pruefer:'', subunternehmer:'', keinSubunternehmer:false,
+    datum:heute(), revision:1, strasse:'', ort:'', lat:null, lng:null, antworten:{}, gespeichertAm:null };
 }
 function leererMangel(){
-  return { id:neueId(), kategorie:'', firma:'', eintrager:'', kommentar:'', fotos:[],
-    strasse:'', ort:'', lat:null, lng:null, datum:heute(), gespeichertAm:null,
+  return { id:neueId(), kategorie:'', firma:'', eintrager:'', subunternehmer:'', keinSubunternehmer:false,
+    kommentar:'', fotos:[], strasse:'', ort:'', lat:null, lng:null, datum:heute(), gespeichertAm:null,
     behoben:false, behobenAm:null };
 }
 
@@ -632,9 +643,10 @@ async function appStart(){
     // Absicherung fuer bereits bestehende Stammdaten von vor dieser Erweiterung
     if(!Array.isArray(stammdaten.kategorien)) stammdaten.kategorien = ['Tiefbau','Montage','Dokumentation'];
     if(!Array.isArray(stammdaten.pruefer)) stammdaten.pruefer = [];
+    if(!Array.isArray(stammdaten.subunternehmer)) stammdaten.subunternehmer = [];
   } else{
     // bewusst keine Musterfirmen oder Musterorte, nur sinnvolle Standardkategorien
-    stammdaten = { kennungen:[], firmen:[], kategorien:['Tiefbau','Montage','Dokumentation'], pruefer:[] };
+    stammdaten = { kennungen:[], firmen:[], kategorien:['Tiefbau','Montage','Dokumentation'], pruefer:[], subunternehmer:[] };
     await speicherSetzen('stammdaten', stammdaten);
   }
 
@@ -775,6 +787,8 @@ function neuerBesuch(){ besuch = leererBesuch(); aktuellerOrtZiel = besuch; stan
 function zeichneProjekt(){
   aktuellerOrtZiel = besuch;
   const b = besuch;
+  if(b.subunternehmer===undefined) b.subunternehmer = '';
+  if(b.keinSubunternehmer===undefined) b.keinSubunternehmer = false;
   document.getElementById('app').innerHTML = `
     <h2>Neuer Baustellenbesuch</h2>
     <div class="karte-box">
@@ -787,6 +801,11 @@ function zeichneProjekt(){
       ${auswahlMitNeuHtml('besuchFirma', stammdaten.firmen, b.firma)}
       <label>Prüfer</label>
       ${auswahlMitNeuHtml('besuchPruefer', stammdaten.pruefer, b.pruefer)}
+      <label style="display:flex; align-items:center; gap:8px; margin-top:14px">
+        <input type="checkbox" ${b.keinSubunternehmer?'checked':''} onchange="keinSubunternehmerUmschalten('besuch')" style="width:auto">
+        Kein separater Subunternehmer, gleiche Firma verwenden
+      </label>
+      ${b.keinSubunternehmer ? '' : `<label>Subunternehmer</label>${auswahlMitNeuHtml('besuchSubunternehmer', stammdaten.subunternehmer, b.subunternehmer)}`}
       <label>Datum</label>
       <input type="date" value="${b.datum}" onchange="besuch.datum=this.value">
     </div>
@@ -926,8 +945,30 @@ async function adresseZuKoordinaten(ziel){
   return false;
 }
 
+// die Umkehrung, aus Koordinaten eine lesbare Adresse ermitteln, wird gebraucht
+// wenn ein Standort nur per GPS oder Karte gesetzt wurde, ohne Adresstext
+async function koordinatenZuAdresse(lat, lng){
+  try{
+    const url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng;
+    const antwort = await fetch(url, {headers:{'Accept':'application/json'}});
+    const daten = await antwort.json();
+    if(daten && daten.address){
+      const a = daten.address;
+      const strasse = [a.road, a.house_number].filter(Boolean).join(' ');
+      const ort = [a.postcode, a.city||a.town||a.village||a.municipality].filter(Boolean).join(' ');
+      const ergebnis = [strasse, ort].filter(Boolean).join(', ');
+      if(ergebnis) return ergebnis;
+      if(daten.display_name) return daten.display_name;
+    }
+  }catch(e){ console.error('Adressermittlung aus Koordinaten fehlgeschlagen', e); }
+  return null;
+}
+
 function weiterZuFragen(){
   if(!besuch.kennung){ meldung('Bitte zuerst einen Projektkenner angeben'); return; }
+  if(!besuch.firma){ meldung('Bitte eine Tiefbaufirma wählen'); return; }
+  if(besuch.keinSubunternehmer) besuch.subunternehmer = besuch.firma;
+  if(!besuch.subunternehmer){ meldung('Bitte einen Subunternehmer angeben, oder Kein separater Subunternehmer ankreuzen'); return; }
   zeige('fragen');
 }
 
@@ -970,6 +1011,8 @@ function zeichneMangel(){
   aktuellerOrtZiel = mangelEntwurf;
   const m = mangelEntwurf;
   if(!Array.isArray(m.fotos)) m.fotos = [];
+  if(m.subunternehmer===undefined) m.subunternehmer = '';
+  if(m.keinSubunternehmer===undefined) m.keinSubunternehmer = false;
   document.getElementById('app').innerHTML = `
     <h2>Mangel dokumentieren</h2>
     <div class="karte-box">
@@ -994,6 +1037,11 @@ function zeichneMangel(){
       ${auswahlMitNeuHtml('mangelKategorie', stammdaten.kategorien, m.kategorie)}
       <label>Tiefbaufirma, Pflichtfeld</label>
       ${auswahlMitNeuHtml('mangelFirma', stammdaten.firmen, m.firma)}
+      <label style="display:flex; align-items:center; gap:8px; margin-top:14px">
+        <input type="checkbox" ${m.keinSubunternehmer?'checked':''} onchange="keinSubunternehmerUmschalten('mangel')" style="width:auto">
+        Kein separater Subunternehmer, gleiche Firma verwenden
+      </label>
+      ${m.keinSubunternehmer ? '' : `<label>Subunternehmer, Pflichtfeld</label>${auswahlMitNeuHtml('mangelSubunternehmer', stammdaten.subunternehmer, m.subunternehmer)}`}
       <label>Kommentar, optional</label>
       <textarea placeholder="Kommentar" oninput="mangelEntwurf.kommentar=this.value">${esc(m.kommentar||'')}</textarea>
     </div>
@@ -1032,6 +1080,8 @@ async function mangelSpeichern(){
   const m = mangelEntwurf;
   if(!m.eintrager){ meldung('Bitte angeben, wer den Mangel einträgt'); return; }
   if(!m.firma){ meldung('Bitte eine Tiefbaufirma wählen'); return; }
+  if(m.keinSubunternehmer) m.subunternehmer = m.firma;
+  if(!m.subunternehmer){ meldung('Bitte einen Subunternehmer angeben, oder Kein separater Subunternehmer ankreuzen'); return; }
   const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
   if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
   // bei reiner Adresseingabe fehlen noch Koordinaten, hier automatisch nachschlagen,
@@ -1059,7 +1109,7 @@ async function mangelSpeichern(){
   const mangelZumSpeichern = {...m, fotos:undefined, fotoAnzahl:fotos.length};
   delete mangelZumSpeichern.fotos;
   await speicherSetzen('mangel:'+m.id, mangelZumSpeichern);
-  const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, eintrager:m.eintrager, datum:m.datum,
+  const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, eintrager:m.eintrager, subunternehmer:m.subunternehmer, datum:m.datum,
     strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
     geaendertAm:m.geaendertAm||null, fotoAnzahl:fotos.length, behoben:!!m.behoben, behobenAm:m.behobenAm||null};
   await speicherSetzen('mangelindex:'+m.id, meta);
@@ -1273,7 +1323,7 @@ async function besuchSpeichern(){
   await speicherSetzen('besuch:'+besuch.id, besuchZumSpeichern, true);
   // die Kurzinfo bekommt einen eigenen kleinen Schluessel statt einer gemeinsamen Liste
   const meta = {id:besuch.id, kennung:besuch.kennung, firma:besuch.firma, pruefer:besuch.pruefer,
-    datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
+    subunternehmer:besuch.subunternehmer, datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
     lat:besuch.lat, lng:besuch.lng, gespeichertAm:besuch.gespeichertAm};
   await speicherSetzen('index:'+besuch.id, meta, true);
   await indexAlleLaden();
@@ -1286,9 +1336,9 @@ async function besuchSpeichern(){
    Logbuch, gespeicherte Besuche
    ===================================================== */
 let logTyp = 'alle'; // 'alle', 'besuche' oder 'maengel'
-let logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
-let logAlleFilter = {typ:'', kennung:'', firma:'', pruefer:'', kategorie:'', status:'', von:'', bis:''};
-let logMangelFilter = {kategorie:'', firma:'', eintrager:'', status:'', von:'', bis:''};
+let logFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
+let logAlleFilter = {typ:'', kennung:'', firma:'', subunternehmer:'', pruefer:'', kategorie:'', status:'', von:'', bis:''};
+let logMangelFilter = {kategorie:'', firma:'', subunternehmer:'', eintrager:'', status:'', von:'', bis:''};
 
 function zeichneLogbuch(){
   document.getElementById('app').innerHTML = `
@@ -1326,7 +1376,7 @@ function besuchKarteHtml(e){
       <div class="log-punkt" style="background:#FFB020"></div>
       <div class="log-info">
         <div class="k">${esc(e.kennung)}</div>
-        <div class="d">${esc(e.firma||'ohne Firma')}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
+        <div class="d">${esc(e.firma||'ohne Firma')}${e.subunternehmer && e.subunternehmer!==e.firma ? ', Sub '+esc(e.subunternehmer) : ''}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
       </div>
       <div class="log-rev">V${e.revision}</div>
     </button>
@@ -1340,7 +1390,7 @@ function mangelKarteHtml(e, herkunft){
       <div class="log-punkt" style="background:${mangelPunktFarbe(e)}"></div>
       <div class="log-info">
         <div class="k">${esc(e.kategorie||'Mangel')}${e.behoben ? '<span class="behoben-marke">Behoben</span>' : ''}</div>
-        <div class="d">${esc(e.firma||'ohne Firma')}, erfasst ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
+        <div class="d">${esc(e.firma||'ohne Firma')}${e.subunternehmer && e.subunternehmer!==e.firma ? ', Sub '+esc(e.subunternehmer) : ''}, erfasst ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
       </div>
     </button>
     ${e.behoben ? `<button class="wiederoeffnen-knopf" onclick="mangelWiederOeffnenAnfragen('${e.id}')">Wieder öffnen</button>` : `<button class="behoben-knopf" onclick="mangelBehobenAnfragen('${e.id}')">Behoben</button>`}
@@ -1351,6 +1401,7 @@ function mangelKarteHtml(e, herkunft){
 function zeichneLogbuchAlle(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
   const firmen = filterOptionen(stammdaten.firmen, [...logIndex, ...mangelIndex], 'firma');
+  const subunternehmer = filterOptionen(stammdaten.subunternehmer, [...logIndex, ...mangelIndex], 'subunternehmer');
   const pruefer = [...new Set([...logIndex.map(e=>e.pruefer), ...mangelIndex.map(e=>e.eintrager)].filter(Boolean))].sort();
 
   const kombiniert = [
@@ -1359,6 +1410,7 @@ function zeichneLogbuchAlle(){
   ].filter(e=>{
     if(logAlleFilter.typ && ((logAlleFilter.typ==='besuch' && e._typ!=='besuch') || (logAlleFilter.typ==='mangel' && e._typ!=='mangel'))) return false;
     if(logAlleFilter.firma && e.firma!==logAlleFilter.firma) return false;
+    if(logAlleFilter.subunternehmer && e.subunternehmer!==logAlleFilter.subunternehmer) return false;
     if(logAlleFilter.kennung && e.kennung!==logAlleFilter.kennung) return false;
     if(logAlleFilter.kategorie && e.kategorie!==logAlleFilter.kategorie) return false;
     if(logAlleFilter.pruefer && e.pruefer!==logAlleFilter.pruefer && e.eintrager!==logAlleFilter.pruefer) return false;
@@ -1394,6 +1446,11 @@ function zeichneLogbuchAlle(){
             <option value="">Alle</option>
             ${firmen.map(f=>`<option ${logAlleFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
           </select></div>
+        <div><label>Subunternehmer</label>
+          <select onchange="logAlleFilter.subunternehmer=this.value; zeichneLogbuchAlle()">
+            <option value="">Alle</option>
+            ${subunternehmer.map(s=>`<option ${logAlleFilter.subunternehmer===s?'selected':''}>${esc(s)}</option>`).join('')}
+          </select></div>
         <div><label>Kategorie</label>
           <select onchange="logAlleFilter.kategorie=this.value; zeichneLogbuchAlle()">
             <option value="">Alle</option>
@@ -1420,7 +1477,7 @@ function zeichneLogbuchAlle(){
     ${kombiniert.length ? kombiniert.map(e=>e._typ==='besuch' ? besuchKarteHtml(e) : mangelKarteHtml(e,'logbuch')).join('') : '<div class="leer-hinweis">Kein Eintrag passt zu diesen Filtern</div>'}`;
 }
 function logAlleFilterZuruecksetzen(){
-  logAlleFilter = {typ:'', kennung:'', firma:'', pruefer:'', kategorie:'', status:'', von:'', bis:''};
+  logAlleFilter = {typ:'', kennung:'', firma:'', subunternehmer:'', pruefer:'', kategorie:'', status:'', von:'', bis:''};
   zeichneLogbuchAlle();
 }
 
@@ -1428,6 +1485,7 @@ function logAlleFilterZuruecksetzen(){
 function zeichneLogbuchBesuche(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
   const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
+  const subunternehmer = filterOptionen(stammdaten.subunternehmer, logIndex, 'subunternehmer');
   const pruefer = filterOptionen(stammdaten.pruefer, logIndex, 'pruefer');
   const statusListe = ['Bestanden','Mängel vorhanden, Nacharbeit erforderlich',
     'Kritisch, sofortige Maßnahme erforderlich'];
@@ -1435,6 +1493,7 @@ function zeichneLogbuchBesuche(){
   const gefiltert = logIndex.filter(e=>{
     if(logFilter.kennung && e.kennung!==logFilter.kennung) return false;
     if(logFilter.firma && e.firma!==logFilter.firma) return false;
+    if(logFilter.subunternehmer && e.subunternehmer!==logFilter.subunternehmer) return false;
     if(logFilter.pruefer && e.pruefer!==logFilter.pruefer) return false;
     if(logFilter.status && e.status!==logFilter.status) return false;
     if(logFilter.von && e.datum < logFilter.von) return false;
@@ -1454,6 +1513,11 @@ function zeichneLogbuchBesuche(){
           <select onchange="logFilter.firma=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
             ${firmen.map(f=>`<option ${logFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Subunternehmer</label>
+          <select onchange="logFilter.subunternehmer=this.value; zeichneLogbuchBesuche()">
+            <option value="">Alle</option>
+            ${subunternehmer.map(s=>`<option ${logFilter.subunternehmer===s?'selected':''}>${esc(s)}</option>`).join('')}
           </select></div>
         <div><label>Prüfer</label>
           <select onchange="logFilter.pruefer=this.value; zeichneLogbuchBesuche()">
@@ -1483,19 +1547,21 @@ function zeichneLogbuchBesuche(){
   document.getElementById('logbuchInhalt').innerHTML = html;
 }
 function logFilterZuruecksetzen(){
-  logFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+  logFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
   zeichneLogbuchBesuche();
 }
 
 // Reiter Mängel, voller Filtersatz, PDF Liste und CSV Export je Filter
 function zeichneLogbuchMaengel(){
   const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
+  const subunternehmer = filterOptionen(stammdaten.subunternehmer, mangelIndex, 'subunternehmer');
   const eintrager = filterOptionen(stammdaten.pruefer, mangelIndex, 'eintrager');
   const statusListe = ['Offen','Behoben'];
 
   const gefiltert = mangelIndex.filter(e=>{
     if(logMangelFilter.kategorie && e.kategorie!==logMangelFilter.kategorie) return false;
     if(logMangelFilter.firma && e.firma!==logMangelFilter.firma) return false;
+    if(logMangelFilter.subunternehmer && e.subunternehmer!==logMangelFilter.subunternehmer) return false;
     if(logMangelFilter.eintrager && e.eintrager!==logMangelFilter.eintrager) return false;
     if(logMangelFilter.status && mangelStatusText(e)!==logMangelFilter.status) return false;
     if(logMangelFilter.von && e.datum < logMangelFilter.von) return false;
@@ -1518,6 +1584,11 @@ function zeichneLogbuchMaengel(){
           <select onchange="logMangelFilter.firma=this.value; zeichneLogbuchMaengel()">
             <option value="">Alle</option>
             ${firmen.map(f=>`<option ${logMangelFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Subunternehmer</label>
+          <select onchange="logMangelFilter.subunternehmer=this.value; zeichneLogbuchMaengel()">
+            <option value="">Alle</option>
+            ${subunternehmer.map(s=>`<option ${logMangelFilter.subunternehmer===s?'selected':''}>${esc(s)}</option>`).join('')}
           </select></div>
         <div><label>Eintragung durch</label>
           <select onchange="logMangelFilter.eintrager=this.value; zeichneLogbuchMaengel()">
@@ -1545,7 +1616,7 @@ function zeichneLogbuchMaengel(){
     ${gefiltert.length ? gefiltert.map(e=>mangelKarteHtml(e,'logbuch')).join('') : '<div class="leer-hinweis">Kein Mangel passt zu diesen Filtern</div>'}`;
 }
 function logMangelFilterZuruecksetzen(){
-  logMangelFilter = {kategorie:'', firma:'', eintrager:'', status:'', von:'', bis:''};
+  logMangelFilter = {kategorie:'', firma:'', subunternehmer:'', eintrager:'', status:'', von:'', bis:''};
   zeichneLogbuchMaengel();
 }
 
@@ -1649,7 +1720,7 @@ async function maengellisteDrucken(){
     </table>`;
   volle.forEach((m,i)=>{
     html += `<div class="druck-frage">
-      <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}</div>
+      <div><b>${i+1}. ${esc(m.kategorie||'ohne Kategorie')}</b>, ${esc(m.firma||'ohne Firma')}${m.subunternehmer && m.subunternehmer!==m.firma ? ', Sub '+esc(m.subunternehmer) : ''}, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}</div>
       ${(m.strasse||m.ort) ? `<div class="druck-kommentar">Ort, ${esc([m.strasse,m.ort].filter(Boolean).join(', '))}</div>` : ''}
       ${m.kommentar ? `<div class="druck-kommentar">Kommentar, ${esc(m.kommentar)}</div>` : ''}
       ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:5px">
@@ -1670,6 +1741,7 @@ async function logbuchExportieren(){
   const auswahl = logIndex.filter(e=>{
     if(logFilter.kennung && e.kennung!==logFilter.kennung) return false;
     if(logFilter.firma && e.firma!==logFilter.firma) return false;
+    if(logFilter.subunternehmer && e.subunternehmer!==logFilter.subunternehmer) return false;
     if(logFilter.pruefer && e.pruefer!==logFilter.pruefer) return false;
     if(logFilter.status && e.status!==logFilter.status) return false;
     if(logFilter.von && e.datum < logFilter.von) return false;
@@ -1677,13 +1749,13 @@ async function logbuchExportieren(){
     return true;
   });
   if(!auswahl.length){ meldung('Keine Besuche für diese Auswahl'); return; }
-  const spalten = ['Projektkenner','Tiefbaufirma','Pruefer','Datum','Revisionsstand','Status',
+  const spalten = ['Projektkenner','Tiefbaufirma','Subunternehmer','Pruefer','Datum','Revisionsstand','Status',
     'Kategorie','Nr','Frage','Antwort','Kommentar','Foto vorhanden'];
   const zeilen = [spalten.join(';')];
   for(const e of auswahl){
     const b = await speicherHolen('besuch:'+e.id);
     if(!b){
-      zeilen.push([e.kennung, e.firma||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
+      zeilen.push([e.kennung, e.firma||'', e.subunternehmer||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
         '','','','','',''].map(csvFeld).join(';'));
       continue;
     }
@@ -1696,7 +1768,7 @@ async function logbuchExportieren(){
         } else {
           antwort = a.wert==='ja' ? 'Ja' : a.wert==='nein' ? 'Nein' : a.wert==='nb' ? 'Nicht bewertbar' : 'offen';
         }
-        zeilen.push([e.kennung, e.firma||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
+        zeilen.push([e.kennung, e.firma||'', e.subunternehmer||'', e.pruefer||'', e.datum||'', 'V'+e.revision, e.status,
           kat.name, f.nr, f.text, antwort, a.kommentar||'', a.foto ? 'Ja' : 'Nein'].map(csvFeld).join(';'));
       });
     });
@@ -1730,6 +1802,7 @@ async function maengelExportieren(){
   const auswahl = mangelIndex.filter(e=>{
     if(logMangelFilter.kategorie && e.kategorie!==logMangelFilter.kategorie) return false;
     if(logMangelFilter.firma && e.firma!==logMangelFilter.firma) return false;
+    if(logMangelFilter.subunternehmer && e.subunternehmer!==logMangelFilter.subunternehmer) return false;
     if(logMangelFilter.eintrager && e.eintrager!==logMangelFilter.eintrager) return false;
     if(logMangelFilter.status && mangelStatusText(e)!==logMangelFilter.status) return false;
     if(logMangelFilter.von && e.datum < logMangelFilter.von) return false;
@@ -1737,13 +1810,13 @@ async function maengelExportieren(){
     return true;
   });
   if(!auswahl.length){ meldung('Keine Mängel für diese Auswahl'); return; }
-  const spalten = ['Kategorie','Tiefbaufirma','Eintragung durch','Status','Datum','Uhrzeit',
+  const spalten = ['Kategorie','Tiefbaufirma','Subunternehmer','Eintragung durch','Status','Datum','Uhrzeit',
     'Strasse','Ort','GPS Breite','GPS Laenge','Anzahl Fotos','Behoben am'];
   const zeilen = [spalten.join(';')];
   for(const e of auswahl){
     const m = await speicherHolen('mangel:'+e.id);
     const kommentar = m ? (m.kommentar||'') : '';
-    zeilen.push([e.kategorie||'', e.firma||'', e.eintrager||'', mangelStatusText(e), e.datum||'',
+    zeilen.push([e.kategorie||'', e.firma||'', e.subunternehmer||'', e.eintrager||'', mangelStatusText(e), e.datum||'',
       zeitSchoen(e.gespeichertAm), e.strasse||'', e.ort||'', e.lat??'', e.lng??'',
       e.fotoAnzahl??0, e.behobenAm ? datumSchoen(e.behobenAm.slice(0,10))+' '+zeitSchoen(e.behobenAm) : '',
       kommentar].map(csvFeld).join(';'));
@@ -1762,6 +1835,7 @@ async function alleExportieren(){
   ].filter(e=>{
     if(logAlleFilter.typ && ((logAlleFilter.typ==='besuch' && e._typ!=='besuch') || (logAlleFilter.typ==='mangel' && e._typ!=='mangel'))) return false;
     if(logAlleFilter.firma && e.firma!==logAlleFilter.firma) return false;
+    if(logAlleFilter.subunternehmer && e.subunternehmer!==logAlleFilter.subunternehmer) return false;
     if(logAlleFilter.kennung && e.kennung!==logAlleFilter.kennung) return false;
     if(logAlleFilter.kategorie && e.kategorie!==logAlleFilter.kategorie) return false;
     if(logAlleFilter.pruefer && e.pruefer!==logAlleFilter.pruefer && e.eintrager!==logAlleFilter.pruefer) return false;
@@ -1774,14 +1848,14 @@ async function alleExportieren(){
     return true;
   }).sort((a,b)=>(b.gespeichertAm||b.datum||'').localeCompare(a.gespeichertAm||a.datum||''));
   if(!kombiniert.length){ meldung('Keine Einträge für diese Auswahl'); return; }
-  const spalten = ['Typ','Bezeichnung','Tiefbaufirma','Person','Status','Datum','Uhrzeit','Ort'];
+  const spalten = ['Typ','Bezeichnung','Tiefbaufirma','Subunternehmer','Person','Status','Datum','Uhrzeit','Ort'];
   const zeilen = [spalten.join(';')];
   kombiniert.forEach(e=>{
     const typ = e._typ==='besuch' ? 'Besuch' : 'Mangel';
     const bezeichnung = e._typ==='besuch' ? (e.kennung||'') : (e.kategorie||'');
     const person = e._typ==='besuch' ? (e.pruefer||'') : (e.eintrager||'');
     const status = e._typ==='besuch' ? (e.status||'') : mangelStatusText(e);
-    zeilen.push([typ, bezeichnung, e.firma||'', person, status, e.datum||'',
+    zeilen.push([typ, bezeichnung, e.firma||'', e.subunternehmer||'', person, status, e.datum||'',
       zeitSchoen(e.gespeichertAm), e.ort||''].map(csvFeld).join(';'));
   });
   csvHerunterladen(zeilen, 'Logbuch_Alle_' + heute() + '.csv');
@@ -1800,7 +1874,7 @@ async function geloeschteExportieren(){
     if(e) eintraege.push(e);
   }
   eintraege.sort((a,b)=>(b.geloeschtAm||'').localeCompare(a.geloeschtAm||''));
-  const spalten = ['Typ','Bezeichnung','Tiefbaufirma','Prüfer oder Eintragung durch',
+  const spalten = ['Typ','Bezeichnung','Tiefbaufirma','Subunternehmer','Prüfer oder Eintragung durch',
     'Datum','Status oder Kommentar','Ursprünglich gespeichert am','Gelöscht am'];
   const zeilen = [spalten.join(';')];
   for(const e of eintraege){
@@ -1810,7 +1884,7 @@ async function geloeschteExportieren(){
     const statusKommentar = e.typ === 'mangel' ? (e.kommentar||'') : (e.status||'');
     const gespeichertText = e.gespeichertAm ? datumSchoen(e.gespeichertAm.slice(0,10))+', '+zeitSchoen(e.gespeichertAm)+' Uhr' : '';
     const geloeschtText = e.geloeschtAm ? datumSchoen(e.geloeschtAm.slice(0,10))+', '+zeitSchoen(e.geloeschtAm)+' Uhr' : '';
-    zeilen.push([typ, bezeichnung, e.firma||'', person, e.datum||'', statusKommentar,
+    zeilen.push([typ, bezeichnung, e.firma||'', e.subunternehmer||'', person, e.datum||'', statusKommentar,
       gespeichertText, geloeschtText].map(csvFeld).join(';'));
   }
   const inhalt = '\uFEFF' + zeilen.join('\r\n');
@@ -1829,9 +1903,9 @@ async function geloeschteExportieren(){
 /* =====================================================
    Auswertungen, gefilterte Übersicht über alle Besuche
    ===================================================== */
-let ausFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+let ausFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
 let auswertungTab = 'besuche'; // 'besuche' oder 'maengel'
-let mangelFilter = {kategorie:'', firma:'', eintrager:'', status:'', von:'', bis:''};
+let mangelFilter = {kategorie:'', firma:'', subunternehmer:'', eintrager:'', status:'', von:'', bis:''};
 
 // Wrapper Bildschirm, zeigt oben die zwei Reiter und darunter die passende Auswertung
 async function zeichneAuswertungen(){
@@ -1855,6 +1929,7 @@ function auswertungTabWechsel(tab){ auswertungTab = tab; zeichneAuswertungen(); 
 async function zeichneAuswertungenBesuche(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
   const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
+  const subunternehmer = filterOptionen(stammdaten.subunternehmer, logIndex, 'subunternehmer');
   const pruefer = filterOptionen(stammdaten.pruefer, logIndex, 'pruefer');
   const statusListe = ['Bestanden','Mängel vorhanden, Nacharbeit erforderlich',
     'Kritisch, sofortige Maßnahme erforderlich'];
@@ -1862,6 +1937,7 @@ async function zeichneAuswertungenBesuche(){
   const gefiltert = logIndex.filter(e=>{
     if(ausFilter.kennung && e.kennung!==ausFilter.kennung) return false;
     if(ausFilter.firma && e.firma!==ausFilter.firma) return false;
+    if(ausFilter.subunternehmer && e.subunternehmer!==ausFilter.subunternehmer) return false;
     if(ausFilter.pruefer && e.pruefer!==ausFilter.pruefer) return false;
     if(ausFilter.status && e.status!==ausFilter.status) return false;
     if(ausFilter.von && e.datum < ausFilter.von) return false;
@@ -1884,6 +1960,11 @@ async function zeichneAuswertungenBesuche(){
           <select onchange="ausFilter.firma=this.value; zeichneAuswertungenBesuche()">
             <option value="">Alle</option>
             ${firmen.map(f=>`<option ${ausFilter.firma===f?'selected':''}>${esc(f)}</option>`).join('')}
+          </select></div>
+        <div><label>Subunternehmer</label>
+          <select onchange="ausFilter.subunternehmer=this.value; zeichneAuswertungenBesuche()">
+            <option value="">Alle</option>
+            ${subunternehmer.map(s=>`<option ${ausFilter.subunternehmer===s?'selected':''}>${esc(s)}</option>`).join('')}
           </select></div>
         <div><label>Prüfer</label>
           <select onchange="ausFilter.pruefer=this.value; zeichneAuswertungenBesuche()">
@@ -1951,10 +2032,12 @@ async function zeichneAuswertungenBesuche(){
    ===================================================== */
 async function zeichneAuswertungenMaengel(){
   const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
+  const subunternehmer = filterOptionen(stammdaten.subunternehmer, mangelIndex, 'subunternehmer');
   const eintrager = filterOptionen(stammdaten.pruefer, mangelIndex, 'eintrager');
   const gefiltert = mangelIndex.filter(e=>{
     if(mangelFilter.kategorie && e.kategorie!==mangelFilter.kategorie) return false;
     if(mangelFilter.firma && e.firma!==mangelFilter.firma) return false;
+    if(mangelFilter.subunternehmer && e.subunternehmer!==mangelFilter.subunternehmer) return false;
     if(mangelFilter.eintrager && e.eintrager!==mangelFilter.eintrager) return false;
     if(mangelFilter.status && mangelStatusText(e)!==mangelFilter.status) return false;
     if(mangelFilter.von && e.datum < mangelFilter.von) return false;
@@ -1997,6 +2080,14 @@ async function zeichneAuswertungenMaengel(){
           </select>
         </div>
         <div>
+          <label class="block text-xs text-zinc-500 mt-2 mb-1">Subunternehmer</label>
+          <select class="w-full bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 px-3 py-2.5 text-base"
+            onchange="mangelFilter.subunternehmer=this.value; zeichneAuswertungenMaengel()">
+            <option value="">Alle</option>
+            ${subunternehmer.map(s=>`<option ${mangelFilter.subunternehmer===s?'selected':''}>${esc(s)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
           <label class="block text-xs text-zinc-500 mt-2 mb-1">Eintragung durch</label>
           <select class="w-full bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 px-3 py-2.5 text-base"
             onchange="mangelFilter.eintrager=this.value; zeichneAuswertungenMaengel()">
@@ -2025,7 +2116,7 @@ async function zeichneAuswertungenMaengel(){
         </div>
       </div>
       <button class="mt-3 w-full py-2 rounded-lg text-sm text-zinc-400 border border-zinc-700"
-        onclick="mangelFilter={kategorie:'',firma:'',eintrager:'',status:'',von:'',bis:''}; zeichneAuswertungenMaengel()">Filter zurücksetzen</button>
+        onclick="mangelFilter={kategorie:'',firma:'',subunternehmer:'',eintrager:'',status:'',von:'',bis:''}; zeichneAuswertungenMaengel()">Filter zurücksetzen</button>
     </div>
 
     <div class="flex flex-wrap gap-2 mb-4">
@@ -2076,6 +2167,7 @@ async function maengelAusExportieren(){
   const auswahl = mangelIndex.filter(e=>{
     if(mangelFilter.kategorie && e.kategorie!==mangelFilter.kategorie) return false;
     if(mangelFilter.firma && e.firma!==mangelFilter.firma) return false;
+    if(mangelFilter.subunternehmer && e.subunternehmer!==mangelFilter.subunternehmer) return false;
     if(mangelFilter.eintrager && e.eintrager!==mangelFilter.eintrager) return false;
     if(mangelFilter.status && mangelStatusText(e)!==mangelFilter.status) return false;
     if(mangelFilter.von && e.datum < mangelFilter.von) return false;
@@ -2083,12 +2175,12 @@ async function maengelAusExportieren(){
     return true;
   });
   if(!auswahl.length){ meldung('Keine Mängel für diese Auswahl'); return; }
-  const spalten = ['Kategorie','Tiefbaufirma','Eintragung durch','Status','Datum','Uhrzeit',
+  const spalten = ['Kategorie','Tiefbaufirma','Subunternehmer','Eintragung durch','Status','Datum','Uhrzeit',
     'Strasse','Ort','Anzahl Fotos','Behoben am','Kommentar'];
   const zeilen = [spalten.join(';')];
   for(const e of auswahl){
     const m = await speicherHolen('mangel:'+e.id);
-    zeilen.push([e.kategorie||'', e.firma||'', e.eintrager||'', mangelStatusText(e), e.datum||'',
+    zeilen.push([e.kategorie||'', e.firma||'', e.subunternehmer||'', e.eintrager||'', mangelStatusText(e), e.datum||'',
       zeitSchoen(e.gespeichertAm), e.strasse||'', e.ort||'', e.fotoAnzahl??0,
       e.behobenAm ? datumSchoen(e.behobenAm.slice(0,10))+' '+zeitSchoen(e.behobenAm) : '',
       m ? (m.kommentar||'') : ''].map(csvFeld).join(';'));
@@ -2235,7 +2327,7 @@ function trendLinienSvg(monate){
   return svg;
 }
 function ausFilterZuruecksetzen(){
-  ausFilter = {kennung:'', firma:'', pruefer:'', status:'', von:'', bis:''};
+  ausFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
   zeichneAuswertungen();
 }
 
@@ -2282,7 +2374,7 @@ function zeichneMangelAnsicht(){
     <h2>${esc(m.kategorie || 'Mangel')}</h2>
     <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
       <div class="titel">${m.behoben ? 'Behoben' : 'Offen'}${m.kategorie ? ', '+esc(m.kategorie) : ''}</div>
-      <div class="unter">${esc(m.firma || 'ohne Firma')}, erfasst ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.geaendertAm ? ', zuletzt geändert '+datumSchoen(m.geaendertAm.slice(0,10))+', '+zeitSchoen(m.geaendertAm)+' Uhr' : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
+      <div class="unter">${esc(m.firma || 'ohne Firma')}${m.subunternehmer && m.subunternehmer!==m.firma ? ', Sub '+esc(m.subunternehmer) : ''}, erfasst ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.geaendertAm ? ', zuletzt geändert '+datumSchoen(m.geaendertAm.slice(0,10))+', '+zeitSchoen(m.geaendertAm)+' Uhr' : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
     </div>
     ${m.behoben ? '<button class="btn btn-leise" onclick="mangelWiederOeffnenAnfragen(ansichtMangel.id)">Mangel wieder öffnen</button>' : '<button class="btn btn-amber" onclick="mangelBehobenAnfragen(ansichtMangel.id)">Als behoben markieren</button>'}
     ${(m.strasse || m.ort || (m.lat && m.lng)) ? `
@@ -2376,6 +2468,7 @@ function mangelDrucken(m){
   let html = `<div class="druck-kopf">Mangel, ${esc(m.kategorie || 'ohne Kategorie')}</div>
     <table class="druck-info">
       <tr><td>Tiefbaufirma</td><td>${esc(m.firma || '–')}</td></tr>
+      <tr><td>Subunternehmer</td><td>${esc(m.subunternehmer || '–')}</td></tr>
       <tr><td>Eintragung durch</td><td>${esc(m.eintrager || '–')}</td></tr>
       <tr><td>Datum</td><td>${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</td></tr>
       ${(m.strasse || m.ort) ? `<tr><td>Adresse</td><td>${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</td></tr>` : ''}
@@ -2395,18 +2488,30 @@ function mangelDrucken(m){
 async function mangelAlsBildTeilen(){
   const m = ansichtMangel;
   meldung('Bild wird vorbereitet …');
+  // liegt nur ein GPS Standort ohne Adresstext vor, wird die Adresse dazu ermittelt,
+  // damit auf dem geteilten Bild immer eine lesbare Adresse zu sehen ist
+  let standortZeile = '';
+  if(m.strasse || m.ort){
+    standortZeile = esc([m.strasse, m.ort].filter(Boolean).join(', '));
+    if(m.lat && m.lng) standortZeile += ' ('+m.lat+', '+m.lng+')';
+  } else if(m.lat && m.lng){
+    const adresse = await koordinatenZuAdresse(m.lat, m.lng);
+    standortZeile = (adresse ? esc(adresse)+' ' : '') + '('+m.lat+', '+m.lng+')';
+  }
   let karte = document.getElementById('teilenKarte');
   if(!karte){ karte = document.createElement('div'); karte.id = 'teilenKarte'; document.body.appendChild(karte); }
   const farbe = m.behoben ? '#3FB966' : '#FF8A3D';
   karte.innerHTML = `
     <div style="background:#ffffff; color:#14171B; font-family:'Barlow','Barlow Semi Condensed',sans-serif; padding:26px; border-radius:14px;">
       <div style="font-size:13px; color:#6b7280; margin-bottom:6px;">PL Christian Holterhoff, Baustellen QS</div>
-      <div style="font-size:30px; font-weight:700; margin-bottom:10px;">${esc(m.kategorie || 'Mangel')}</div>
+      <div style="font-size:26px; font-weight:700; margin-bottom:4px;">Ausführungsmangel:</div>
+      <div style="font-size:20px; font-weight:700; margin-bottom:10px;">Kategorie: ${esc(m.kategorie || '–')}</div>
       <div style="display:inline-block; padding:5px 14px; border-radius:8px; font-size:14px; font-weight:700; color:#ffffff; background:${farbe}; margin-bottom:18px;">${m.behoben ? 'Behoben' : 'Offen'}</div>
       <div style="font-size:16px; line-height:1.8;">
         <div><b>Tiefbaufirma</b>, ${esc(m.firma || 'ohne Firma')}</div>
+        ${m.subunternehmer ? `<div><b>Subunternehmer</b>, ${esc(m.subunternehmer)}</div>` : ''}
         <div><b>Datum</b>, ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}</div>
-        ${(m.strasse || m.ort) ? `<div><b>Standort</b>, ${esc([m.strasse, m.ort].filter(Boolean).join(', '))}</div>` : ''}
+        ${standortZeile ? `<div><b>Standort</b>, ${standortZeile}</div>` : ''}
         ${m.eintrager ? `<div><b>Eintragung durch</b>, ${esc(m.eintrager)}</div>` : ''}
       </div>
       ${m.kommentar ? `<div style="font-size:16px; margin-top:16px; padding:14px; background:#F3F4F6; border-radius:10px;">${esc(m.kommentar)}</div>` : ''}
@@ -2425,7 +2530,7 @@ async function mangelAlsBildTeilen(){
       const datei = new File([blob], dateiname, {type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[datei]})){
         try{
-          await navigator.share({files:[datei], title:'Mangel, '+(m.kategorie||''),
+          await navigator.share({files:[datei], title:'Ausführungsmangel, Kategorie '+(m.kategorie||''),
             text:(m.firma||'ohne Firma')+', '+datumSchoen(m.datum)});
         }catch(fehler){
           if(fehler && fehler.name !== 'AbortError') meldung('Teilen wurde nicht abgeschlossen');
@@ -2477,7 +2582,7 @@ function zeichneAnsicht(){
     <h2>${esc(b.kennung)} <span style="color:var(--amber)">V${b.revision}</span></h2>
     <div class="status-karte st-${s.klasse}">
       <div class="titel">${esc(s.status)}</div>
-      <div class="unter">${esc(b.firma||'ohne Firma')}, ${datumSchoen(b.datum)}, Prüfer ${esc(b.pruefer||'–')}</div>
+      <div class="unter">${esc(b.firma||'ohne Firma')}${b.subunternehmer && b.subunternehmer!==b.firma ? ', Sub '+esc(b.subunternehmer) : ''}, ${datumSchoen(b.datum)}, Prüfer ${esc(b.pruefer||'–')}</div>
     </div>
     ${(b.lat && b.lng) || b.strasse ? `
     <div class="karte-box">
@@ -2609,6 +2714,17 @@ function zeichneStammdaten(){
         <input type="text" id="neuPruefer" placeholder="Neuer Prüfer">
         <button onclick="stammNeu('pruefer','neuPruefer')">+</button>
       </div>
+    </div>
+    <div class="karte-box">
+      <div class="eyebrow">Subunternehmer</div>
+      ${stammdaten.subunternehmer.map((s,i)=>`
+        <div class="stamm-zeile"><span>${esc(s)}</span>
+        <button onclick="stammLoeschenAnfragen('subunternehmer',${i})">${stammLoeschPending==='subunternehmer:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        '<div class="hinweis">Noch keine Subunternehmer angelegt</div>'}
+      <div class="stamm-neu">
+        <input type="text" id="neuSubunternehmer" placeholder="Neuer Subunternehmer">
+        <button onclick="stammNeu('subunternehmer','neuSubunternehmer')">+</button>
+      </div>
     </div>`;
 }
 async function stammNeu(liste, feldId){
@@ -2678,6 +2794,7 @@ function druckInhaltBauen(b){
     <table class="druck-info">
       <tr><td>Projektkenner</td><td>${esc(b.kennung)}</td></tr>
       <tr><td>Tiefbaufirma</td><td>${esc(b.firma||'–')}</td></tr>
+      <tr><td>Subunternehmer</td><td>${esc(b.subunternehmer||'–')}</td></tr>
       <tr><td>Prüfer</td><td>${esc(b.pruefer||'–')}</td></tr>
       <tr><td>Datum</td><td>${datumSchoen(b.datum)}</td></tr>
       <tr><td>Revisionsstand</td><td>V${b.revision}</td></tr>
