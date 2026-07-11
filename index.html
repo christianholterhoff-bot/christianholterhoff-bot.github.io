@@ -232,6 +232,12 @@ nav button.aktiv{color:var(--amber);}
   padding:12px 16px; font-size:14px; text-align:center; z-index:1000; opacity:0; transform:translateY(8px);
   pointer-events:none; transition:opacity .2s, transform .2s;}
 #meldungBox.zeigen{opacity:1; transform:translateY(0);}
+#bildUeberlage{position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,.92);
+  display:none; align-items:center; justify-content:center; padding:24px;}
+#bildUeberlage.zeigen{display:flex;}
+#bildUeberlage img{max-width:100%; max-height:100%; border-radius:10px; object-fit:contain;}
+.bild-schliessen{position:absolute; top:18px; right:18px; width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.15); color:#fff; font-size:20px; border:1px solid rgba(255,255,255,.3);}
 #bestaetigungUeberlage{position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,.6);
   display:none; align-items:center; justify-content:center; padding:24px;}
 #bestaetigungUeberlage.zeigen{display:flex;}
@@ -264,7 +270,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>PL-Christian Holterhoff-<span>Baustellen QS</span></h1>
-  <div class="rev-tag">Version V21, Code Stand 09.07.2026</div>
+  <div class="rev-tag">Version V23, Code Stand 09.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -295,20 +301,9 @@ nav button.aktiv{color:var(--amber);}
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
 <script>
-/* =====================================================
-   PL-Christian Holterhoff, Baustellen QS
-   REVISIONSSTAND, V21, Code Stand 09.07.2026
-   Bei jeder inhaltlichen Aenderung diesen Stand UND den Stand
-   in sw.js (CACHE_NAME) mit hochzaehlen, sonst zeigt Safari
-   wegen der Offline Zwischenspeicherung weiter die alte Version
-   Alles in einer Datei, Kommentare bewusst einfach gehalten
-   ===================================================== */
-const APP_REVISION = 'V21';
+// REVISIONSSTAND, V23, Code Stand 09.07.2026
+const APP_REVISION = 'V23';
 
-// ---------- der feste Fragenkatalog, 15 Fragen plus eine freie Anmerkung ----------
-// sicher bedeutet, die Frage ist sicherheitsrelevant,
-// ein Nein macht den ganzen Besuch sofort kritisch
-// typ 'text' ist keine Ja Nein Frage, sondern eine freie Anmerkung, optional auszufuellen
 const KATEGORIEN = [
   {name:'Arbeitssicherheit', farbe:'#FF8A3D'},
   {name:'Qualität Tiefbau und Verlegung', farbe:'#4DA3FF'},
@@ -333,11 +328,8 @@ const FRAGEN = [
   {nr:15, kat:3, sicher:false, text:'Wird Aushub und Abfall ordnungsgemäß entsorgt'},
   {nr:16, kat:3, typ:'text', sicher:false, text:'Sonstige Anmerkungen'}
 ];
-// alle Fragen ausser der freien Anmerkung, fuer Fortschritt und Auswertung
 const BEWERTBARE_FRAGEN = FRAGEN.filter(f=>f.typ!=='text');
 
-
-// leise Meldung unten am Bildschirm, statt alert, das kann in mancher Vorschau blockiert sein
 function meldung(text, dauer=3500){
   let el = document.getElementById('meldungBox');
   if(!el){
@@ -351,8 +343,6 @@ function meldung(text, dauer=3500){
   meldung._t = setTimeout(()=>{ if(el) el.classList.remove('zeigen'); }, dauer);
 }
 
-// wiederverwendbares Bestaetigungsfenster, ruft beim Bestaetigen die uebergebene
-// Funktion auf, statt eines Browser confirm, das in mancher Vorschau blockiert ist
 function bestaetigung(titel, text, aktionText, aktion){
   let ueberlage = document.getElementById('bestaetigungUeberlage');
   if(!ueberlage){
@@ -377,10 +367,24 @@ function bestaetigungSchliessen(){
   if(u) u.classList.remove('zeigen');
 }
 
-// ---------- Speicher, jetzt über Firebase Firestore, echte Synchronisierung ----------
-// Trage hier dein eigenes, kostenloses Firebase Projekt ein, siehe Anleitung im Chat,
-// solange hier noch die HIER_ Platzhalter stehen, laeuft die App nur lokal auf diesem
-// Geraet, ohne Synchronisierung, das ist der sichere Notbetrieb
+function bildGross(src){
+  let el = document.getElementById('bildUeberlage');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'bildUeberlage';
+    el.onclick = bildSchliessen;
+    el.innerHTML = '<button class="bild-schliessen" onclick="event.stopPropagation(); bildSchliessen()">✕</button>' +
+      '<img id="bildGrossImg" onclick="event.stopPropagation()">';
+    document.body.appendChild(el);
+  }
+  document.getElementById('bildGrossImg').src = src;
+  el.classList.add('zeigen');
+}
+function bildSchliessen(){
+  const el = document.getElementById('bildUeberlage');
+  if(el) el.classList.remove('zeigen');
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyCpW-NnQwU9Lb08brlkLdqG6Xh3ZqsYKwg",
   authDomain: "pl-holterhoff-baustellen-qs.firebaseapp.com",
@@ -400,12 +404,11 @@ if(!FIREBASE_EINGERICHTET){
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    // erlaubt der App, auch offline weiterzuarbeiten und spaeter automatisch nachzuziehen
-    db.enablePersistence({synchronizeTabs:true}).catch(()=>{ /* mehrmals offener Tab, kein Problem */ });
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{  });
   }catch(e){ console.error('Firebase Start fehlgeschlagen', e); db = null; firebaseFehler = e.message; }
 }
 
-const MERKER = {}; // Notloesung, solange Firebase nicht eingerichtet oder nicht erreichbar ist
+const MERKER = {};
 function merkerListe(prefix){ return Object.keys(MERKER).filter(k=>k.startsWith(prefix)); }
 
 async function speicherHolen(schluessel){
@@ -443,8 +446,6 @@ async function speicherListe(prefix){
   }
   return merkerListe(prefix);
 }
-// live Abo, jedes Geraet bekommt Aenderungen der anderen automatisch und in Echtzeit,
-// kein Aktualisieren Knopf noetig
 function indexEchtzeitStarten(){
   db.collection('kv')
     .where(firebase.firestore.FieldPath.documentId(), '>=', 'index:')
@@ -488,28 +489,25 @@ function stammdatenEchtzeitStarten(){
   });
 }
 
-// ---------- der aktuelle Zustand der App ----------
 let stammdaten = {kennungen:[], firmen:[]};
-let logIndex = [];        // kurze Uebersicht aller gespeicherten Besuche
-let mangelIndex = [];     // kurze Uebersicht aller gespeicherten Maengel
-let besuch = null;        // der Besuch an dem gerade gearbeitet wird
-let mangelEntwurf = null; // der Mangel an dem gerade gearbeitet wird
-let aktuellerOrtZiel = null; // zeigt auf besuch ODER mangelEntwurf, je nachdem was gerade offen ist
-let aktuelleFotoFrage = null; // fuer welche Frage gerade ein Foto geholt wird
-let mangelFotoAktiv = false;  // true, wenn das naechste Foto fuer den Mangel statt fuer eine Frage ist
-let standortTab = 'adresse';  // welcher Weg der Standorterfassung gerade offen ist
+let logIndex = [];
+let mangelIndex = [];
+let besuch = null;
+let mangelEntwurf = null;
+let aktuellerOrtZiel = null;
+let aktuelleFotoFrage = null;
+let mangelFotoAktiv = false;
+let standortTab = 'adresse';
 let startKarte = null, pickKarte = null, ansichtKarte = null, pickMarker = null;
 let aktuellerScreen = 'start';
-let ansichtBesuch = null; // der Besuch der gerade nur angeschaut wird
-let ansichtMangel = null; // der Mangel der gerade nur angeschaut wird
-let mangelAnsichtHerkunft = 'logbuch'; // wohin der Zurück Knopf fuehrt, logbuch oder auswertungen
-let mangelBearbeitenAktiv = false; // true, wenn gerade ein bestehender Mangel bearbeitet statt neu angelegt wird
-let mangelBearbeitenHerkunft = 'start'; // wohin es nach dem Speichern oder Abbrechen der Bearbeitung zurueckgeht
+let ansichtBesuch = null;
+let ansichtMangel = null;
+let mangelAnsichtHerkunft = 'logbuch';
+let mangelBearbeitenAktiv = false;
+let mangelBearbeitenHerkunft = 'start';
 const MANGEL_KATEGORIEN = ['Tiefbau','Montage','Dokumentation'];
 const MANGEL_FARBEN = {'Tiefbau':'#4DA3FF','Montage':'#FF8A3D','Dokumentation':'#3FB966'};
 
-// generisches Auswahlfeld mit der Option, direkt einen neuen Eintrag anzulegen,
-// der landet dann dauerhaft in den Stammdaten, kein Umweg ueber den Stammdaten Reiter
 const AUSWAHL_KONTEXT = {
   besuchFirma:          { liste:'firmen',        setzen:w=>{besuch.firma=w; if(besuch.keinSubunternehmer) besuch.subunternehmer=w;}, neuZeichnen:()=>zeichneProjekt() },
   besuchPruefer:        { liste:'pruefer',       setzen:w=>{besuch.pruefer=w;},            neuZeichnen:()=>zeichneProjekt() },
@@ -554,7 +552,6 @@ async function neuEintragBestaetigen(kontextName){
   kontext.neuZeichnen();
 }
 
-// Kein separater Subunternehmer, dann zaehlt die eigene Tiefbaufirma als Subunternehmer
 function keinSubunternehmerUmschalten(typ){
   const ziel = typ==='besuch' ? besuch : mangelEntwurf;
   ziel.keinSubunternehmer = !ziel.keinSubunternehmer;
@@ -562,7 +559,6 @@ function keinSubunternehmerUmschalten(typ){
   if(typ==='besuch') zeichneProjekt(); else zeichneMangel();
 }
 
-// ---------- Hilfen ----------
 function esc(t){ return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function heute(){ return new Date().toISOString().slice(0,10); }
 function datumSchoen(iso){ if(!iso) return ''; const [j,m,t]=iso.split('-'); return `${t}.${m}.${j}`; }
@@ -572,9 +568,6 @@ function zeitSchoen(iso){
   if(isNaN(d)) return '';
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
-// baut die Optionen fuer ein Filter Auswahlfeld, aus den Stammdaten UND aus den
-// bereits vorhandenen Eintraegen zusammen, so bleiben alte Eintraege filterbar,
-// auch wenn jemand aus Versehen etwas aus den Stammdaten geloescht hat
 function filterOptionen(stammdatenListe, indexListe, feld){
   return [...new Set([...(stammdatenListe||[]), ...indexListe.map(e=>e[feld])])].filter(Boolean).sort();
 }
@@ -587,10 +580,9 @@ function leererBesuch(){
 function leererMangel(){
   return { id:neueId(), kategorie:'', firma:'', eintrager:'', subunternehmer:'', keinSubunternehmer:false,
     kommentar:'', fotos:[], strasse:'', ort:'', lat:null, lng:null, datum:heute(), gespeichertAm:null,
-    behoben:false, behobenAm:null };
+    behoben:false, behobenAm:null, kritisch:false };
 }
 
-// rechnet den Status eines Besuchs aus, gleiche Logik wie in der Exceltabelle
 function statusRechnen(b){
   let ja=0, nein=0, nb=0, kritisch=0;
   for(const f of BEWERTBARE_FRAGEN){
@@ -609,9 +601,6 @@ function statusRechnen(b){
   else { status='Bestanden'; klasse='gruen'; }
   return {ja, nein, nb, kritisch, beantwortet, status, klasse};
 }
-// legt auf eine Leaflet Karte einen kleinen Umschalter, um zwischen normaler
-// Straßenkarte und der amtlichen NRW Katasterkarte (Liegenschaftskarte, Flurstuecke)
-// zu wechseln, Quelle Geobasis NRW, nur innerhalb von NRW mit Daten hinterlegt
 function ebenenUmschalterHinzufuegen(karte){
   const strassenkarte = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     {attribution:'© OpenStreetMap Mitwirkende', maxZoom:19}).addTo(karte);
@@ -626,7 +615,6 @@ function statusFarbe(klasse){
   return klasse==='rot' ? '#E5484D' : klasse==='gelb' ? '#FFB020' : klasse==='gruen' ? '#3FB966' : '#93A0AD';
 }
 
-// ---------- Start der App ----------
 async function appStart(){
   const sync = document.getElementById('syncStatus');
   if(!FIREBASE_EINGERICHTET){
@@ -640,12 +628,10 @@ async function appStart(){
   const sd = await speicherHolen('stammdaten');
   if(sd){
     stammdaten = sd;
-    // Absicherung fuer bereits bestehende Stammdaten von vor dieser Erweiterung
     if(!Array.isArray(stammdaten.kategorien)) stammdaten.kategorien = ['Tiefbau','Montage','Dokumentation'];
     if(!Array.isArray(stammdaten.pruefer)) stammdaten.pruefer = [];
     if(!Array.isArray(stammdaten.subunternehmer)) stammdaten.subunternehmer = [];
   } else{
-    // bewusst keine Musterfirmen oder Musterorte, nur sinnvolle Standardkategorien
     stammdaten = { kennungen:[], firmen:[], kategorien:['Tiefbau','Montage','Dokumentation'], pruefer:[], subunternehmer:[] };
     await speicherSetzen('stammdaten', stammdaten);
   }
@@ -655,13 +641,12 @@ async function appStart(){
     mangelEchtzeitStarten();
     stammdatenEchtzeitStarten();
   } else {
-    await indexAlleLaden(); // Notloesung ohne Cloud, einmaliges Laden von diesem Geraet
+    await indexAlleLaden();
     await mangelIndexLaden();
   }
   zeige('start');
 }
 
-// baut die Kurzuebersicht aller Besuche aus lauter kleinen Einzelschluesseln neu auf
 async function indexAlleLaden(){
   const schluessel = await speicherListe('index:', true);
   const eintraege = [];
@@ -672,10 +657,8 @@ async function indexAlleLaden(){
   eintraege.sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
   logIndex = eintraege;
 }
-// dasselbe fuer die Maengel, nur bei fehlender Cloud Anbindung noetig, sonst
-// erledigt das die Echtzeit Funktion oben automatisch
 async function mangelIndexLaden(){
-  if(db) return; // mit Cloud kommt das automatisch per Echtzeit Abo
+  if(db) return;
   const schluessel = await speicherListe('mangelindex:');
   const eintraege = [];
   for(const k of schluessel){
@@ -686,8 +669,8 @@ async function mangelIndexLaden(){
   mangelIndex = eintraege;
 }
 
-// ---------- Bildschirm wechseln ----------
 function zeige(screen){
+  if(gpsWatchId !== null){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
   aktuellerScreen = screen;
   ['navStart','navLogbuch','navAuswertungen','navStamm'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
   if(screen==='start') document.getElementById('navStart').classList.add('aktiv');
@@ -721,25 +704,25 @@ function fortschrittAktualisieren(){
     s.beantwortet + ' von ' + BEWERTBARE_FRAGEN.length + ' Fragen beantwortet';
 }
 
-/* =====================================================
-   Startseite, Karte mit allen Besuchen als Punkte
-   ===================================================== */
 function zeichneStart(){
   const kritische = logIndex.filter(e=>e.klasse==='rot').length;
+  const mangelKritische = mangelIndex.filter(e=>e.kritisch).length;
   document.getElementById('app').innerHTML = `
     <button class="gross-knopf" onclick="neuerBesuch()">+ Neuer Baustellenbesuch</button>
     <button class="btn btn-amber" onclick="neuerMangel()">+ Mangel dokumentieren</button>
     <div class="statistik">
       <div class="karte-box"><div class="zahl">${logIndex.length}</div><div class="klein">Besuche gesamt</div></div>
-      <div class="karte-box"><div class="zahl rot">${kritische}</div><div class="klein">davon kritisch</div></div>
+      <div class="karte-box"><div class="zahl rot">${kritische}</div><div class="klein">Besuche kritisch</div></div>
+    </div>
+    <div class="statistik">
       <div class="karte-box"><div class="zahl" style="color:var(--sicher)">${mangelIndex.length}</div><div class="klein">Mängel gesamt</div></div>
+      <div class="karte-box"><div class="zahl rot">${mangelKritische}</div><div class="klein">Mängel kritisch</div></div>
     </div>
     <div class="karte-box">
       <div class="eyebrow">Übersichtskarte</div>
       <div id="startKarte"></div>
       <div class="hinweis">Jeder gespeicherte Baustellenbesuch mit Standort erscheint als runder Punkt, jeder Mangel als Raute, Farbe zeigt den Status</div>
     </div>`;
-  // Karte erst bauen wenn das Element auch da ist
   setTimeout(startKarteBauen, 50);
 }
 
@@ -763,25 +746,22 @@ function startKarteBauen(){
     gruppe.push([e.lat, e.lng]);
   });
   mangelMitOrt.forEach(e=>{
-    const rautenFarbe = e.behoben ? '#3FB966' : '#FF8A3D';
+    const rautenFarbe = e.behoben ? '#3FB966' : (e.kritisch ? '#E5484D' : '#FF8A3D');
     const icon = L.divIcon({className:'', iconSize:[14,14], iconAnchor:[7,7],
       html:'<div style="width:14px;height:14px;background:'+rautenFarbe+';border:2px solid #14171B;transform:rotate(45deg)"></div>'});
     const m = L.marker([e.lat, e.lng], {icon}).addTo(startKarte);
-    m.bindPopup(`<b>Mangel, ${esc(e.kategorie)}</b><br>${esc(e.firma||'ohne Firma')}<br>${datumSchoen(e.datum)}<br>${e.behoben ? 'Behoben' : 'Offen'}<br>` +
+    m.bindPopup(`<b>Mangel, ${esc(e.kategorie)}</b><br>${esc(e.firma||'ohne Firma')}<br>${datumSchoen(e.datum)}<br>${e.behoben ? 'Behoben' : (e.kritisch ? 'Offen, kritisch' : 'Offen')}<br>` +
       `<a href="#" onclick="mangelOeffnen('${e.id}','start');return false;">Mangel öffnen</a>`);
     gruppe.push([e.lat, e.lng]);
   });
   if(gruppe.length){
     startKarte.fitBounds(gruppe, {padding:[30,30], maxZoom:15});
   } else {
-    startKarte.setView([51.388, 8.141], 13); // Zum Dümpel, 59823 Arnsberg, als Ausgangspunkt
+    startKarte.setView([51.388, 8.141], 13);
   }
   setTimeout(()=>startKarte.invalidateSize(), 200);
 }
 
-/* =====================================================
-   Schritt 1, Projektdaten und Standort
-   ===================================================== */
 function neuerBesuch(){ besuch = leererBesuch(); aktuellerOrtZiel = besuch; standortTab='adresse'; zeige('projekt'); }
 
 function zeichneProjekt(){
@@ -847,7 +827,7 @@ function kennungFiltern(){
   const liste = document.getElementById('kennungListe');
   const suche = feld.value.toLowerCase();
   const treffer = stammdaten.kennungen.filter(k=>k.toLowerCase().includes(suche));
-  besuch.kennung = feld.value; // freie Eingabe geht auch
+  besuch.kennung = feld.value;
   if(!treffer.length){ liste.style.display='none'; return; }
   liste.innerHTML = treffer.map(k=>`<div onclick="kennungWaehlen('${esc(k).replace(/'/g,"\\'")}')">${esc(k)}</div>`).join('');
   liste.style.display='block';
@@ -881,9 +861,8 @@ function pickKarteBauen(){
     pickKarte.setView([aktuellerOrtZiel.lat, aktuellerOrtZiel.lng], 16);
     pickMarker = L.marker([aktuellerOrtZiel.lat, aktuellerOrtZiel.lng]).addTo(pickKarte);
   } else {
-    pickKarte.setView([51.388, 8.141], 13); // Zum Dümpel, 59823 Arnsberg, als Ausgangspunkt
+    pickKarte.setView([51.388, 8.141], 13);
   }
-  // Tipp auf die Karte setzt den Punkt
   pickKarte.on('click', e=>{
     aktuellerOrtZiel.lat = Math.round(e.latlng.lat*1e6)/1e6;
     aktuellerOrtZiel.lng = Math.round(e.latlng.lng*1e6)/1e6;
@@ -893,17 +872,33 @@ function pickKarteBauen(){
   setTimeout(()=>pickKarte.invalidateSize(), 200);
 }
 
+let gpsWatchId = null;
 function gpsHolen(){
   const anzeige = document.getElementById('gpsAnzeige');
   if(!navigator.geolocation){ anzeige.textContent='Standorterkennung wird auf diesem Gerät nicht unterstützt'; return; }
-  anzeige.textContent = 'Standort wird ermittelt ...';
-  navigator.geolocation.getCurrentPosition(pos=>{
-    aktuellerOrtZiel.lat = Math.round(pos.coords.latitude*1e6)/1e6;
-    aktuellerOrtZiel.lng = Math.round(pos.coords.longitude*1e6)/1e6;
-    anzeige.innerHTML = 'Standort übernommen, Genauigkeit etwa <b>' + Math.round(pos.coords.accuracy) + ' m</b>';
-    koordAnzeigen();
+  if(gpsWatchId !== null){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+  anzeige.textContent = 'Standort wird ermittelt, das GPS Signal braucht ein paar Sekunden zum Einpendeln …';
+  let besteGenauigkeit = Infinity;
+  let messungen = 0;
+  const beenden = ()=>{ if(gpsWatchId!==null){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; } };
+  gpsWatchId = navigator.geolocation.watchPosition(pos=>{
+    messungen++;
+    if(pos.coords.accuracy < besteGenauigkeit){
+      besteGenauigkeit = pos.coords.accuracy;
+      aktuellerOrtZiel.lat = Math.round(pos.coords.latitude*1e6)/1e6;
+      aktuellerOrtZiel.lng = Math.round(pos.coords.longitude*1e6)/1e6;
+      koordAnzeigen();
+    }
+    const genauGenug = besteGenauigkeit <= 25;
+    let text = (genauGenug ? 'Standort übernommen, Genauigkeit etwa ' : 'Wird noch genauer, bisher etwa ') +
+      '<b>' + Math.round(besteGenauigkeit) + ' m</b>';
+    if(besteGenauigkeit > 100){
+      text += '<br>Achtung, diese Genauigkeit ist sehr grob. Bitte etwas warten, oder ins Freie gehen, oder den Standort über die Karte per Fingertipp genauer setzen.';
+    }
+    anzeige.innerHTML = text;
+    if(genauGenug || messungen >= 10) beenden();
   }, err=>{
-    // je nach Fehlercode eine passende, verständliche Meldung zeigen
+    beenden();
     if(err.code === 1){
       anzeige.textContent = 'Standort wurde nicht freigegeben, bitte in den iPhone Einstellungen unter Safari, Standort, die Freigabe erteilen';
     } else if(err.code === 2){
@@ -913,7 +908,8 @@ function gpsHolen(){
     } else {
       anzeige.textContent = 'Standort konnte nicht ermittelt werden, bitte Karte oder Adresse nutzen';
     }
-  }, {enableHighAccuracy:true, timeout:12000});
+  }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
+  setTimeout(beenden, 18000);
 }
 
 function koordAnzeigen(){
@@ -924,11 +920,8 @@ function koordAnzeigen(){
     : 'Noch keine Koordinaten gespeichert';
 }
 
-// wandelt eine eingetippte Adresse in GPS Koordinaten um, ueber den kostenlosen
-// Dienst von OpenStreetMap, damit auch bei reiner Adresseingabe ein Kartenpunkt entsteht.
-// Wird beim Speichern automatisch aufgerufen, wenn noch keine Koordinaten vorhanden sind.
 async function adresseZuKoordinaten(ziel){
-  if(ziel.lat && ziel.lng) return true; // schon vorhanden, zum Beispiel per GPS oder Karte
+  if(ziel.lat && ziel.lng) return true;
   const teile = [ziel.strasse, ziel.ort].filter(t=>t && t.trim());
   if(!teile.length) return false;
   const suche = teile.join(', ') + ', Deutschland';
@@ -945,8 +938,6 @@ async function adresseZuKoordinaten(ziel){
   return false;
 }
 
-// die Umkehrung, aus Koordinaten eine lesbare Adresse ermitteln, wird gebraucht
-// wenn ein Standort nur per GPS oder Karte gesetzt wurde, ohne Adresstext
 async function koordinatenZuAdresse(lat, lng){
   try{
     const url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng;
@@ -972,10 +963,6 @@ function weiterZuFragen(){
   zeige('fragen');
 }
 
-/* =====================================================
-   Mangel dokumentieren, ein schneller, einfacher Weg neben
-   dem vollen Baustellenbesuch, nur Foto, Kategorie, Firma, Ort
-   ===================================================== */
 function neuerMangel(){
   mangelEntwurf = leererMangel();
   mangelBearbeitenAktiv = false;
@@ -984,12 +971,8 @@ function neuerMangel(){
   zeige('mangel');
 }
 
-// laedt einen bestehenden Mangel zurueck ins Formular, wie das Bearbeiten eines Besuchs,
-// beim Speichern wird dann derselbe Eintrag ueberschrieben statt ein neuer angelegt
 function mangelBearbeiten(){
   mangelEntwurf = JSON.parse(JSON.stringify(ansichtMangel));
-  // ein behobener Mangel, der wieder bearbeitet wird, gilt danach wieder als offen,
-  // denn wenn nachgearbeitet wird, ist der frühere Behoben Stand nicht mehr gültig
   if(mangelEntwurf.behoben){
     mangelEntwurf.behoben = false;
     mangelEntwurf.behobenAm = null;
@@ -1013,6 +996,7 @@ function zeichneMangel(){
   if(!Array.isArray(m.fotos)) m.fotos = [];
   if(m.subunternehmer===undefined) m.subunternehmer = '';
   if(m.keinSubunternehmer===undefined) m.keinSubunternehmer = false;
+  if(m.kritisch===undefined) m.kritisch = false;
   document.getElementById('app').innerHTML = `
     <h2>Mangel dokumentieren</h2>
     <div class="karte-box">
@@ -1042,6 +1026,10 @@ function zeichneMangel(){
         Kein separater Subunternehmer, gleiche Firma verwenden
       </label>
       ${m.keinSubunternehmer ? '' : `<label>Subunternehmer, Pflichtfeld</label>${auswahlMitNeuHtml('mangelSubunternehmer', stammdaten.subunternehmer, m.subunternehmer)}`}
+      <label style="display:flex; align-items:center; gap:8px; margin-top:14px; color:var(--nein); font-weight:600">
+        <input type="checkbox" ${m.kritisch?'checked':''} onchange="mangelEntwurf.kritisch=this.checked" style="width:auto">
+        Kritischer Mangel
+      </label>
       <label>Kommentar, optional</label>
       <textarea placeholder="Kommentar" oninput="mangelEntwurf.kommentar=this.value">${esc(m.kommentar||'')}</textarea>
     </div>
@@ -1084,22 +1072,15 @@ async function mangelSpeichern(){
   if(!m.subunternehmer){ meldung('Bitte einen Subunternehmer angeben, oder Kein separater Subunternehmer ankreuzen'); return; }
   const hatStandort = (m.strasse && m.strasse.trim()) || (m.ort && m.ort.trim()) || (m.lat && m.lng);
   if(!hatStandort){ meldung('Bitte einen Standort angeben, Adresse, GPS oder Karte'); return; }
-  // bei reiner Adresseingabe fehlen noch Koordinaten, hier automatisch nachschlagen,
-  // damit spaeter der Kartenpunkt erscheint
   if(!m.lat || !m.lng){
     meldung('Standort wird ermittelt …');
     await adresseZuKoordinaten(m);
   }
-  // beim Bearbeiten kann es vorher schon Fotos gegeben haben, die jetzt entfernt wurden,
-  // die dann verwaisten alten Fotodokumente werden gleich mit aufgeraeumt
   const vorherigeFotoAnzahl = (mangelIndex.find(e=>e.id===m.id) || {}).fotoAnzahl || 0;
   const jetzt = new Date().toISOString();
-  // das erste Erfassungsdatum bleibt immer erhalten, nur das Aenderungsdatum wird neu gesetzt
   if(!m.gespeichertAm) m.gespeichertAm = jetzt;
   if(mangelBearbeitenAktiv) m.geaendertAm = jetzt;
   const fotos = m.fotos || [];
-  // jedes Foto einzeln speichern, sonst wird ein Mangel mit mehreren Fotos schnell
-  // zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
   for(let i=0; i<fotos.length; i++){
     await speicherSetzen('mangelfoto:'+m.id+':'+i, {daten:fotos[i]});
   }
@@ -1111,7 +1092,8 @@ async function mangelSpeichern(){
   await speicherSetzen('mangel:'+m.id, mangelZumSpeichern);
   const meta = {id:m.id, kategorie:m.kategorie, firma:m.firma, eintrager:m.eintrager, subunternehmer:m.subunternehmer, datum:m.datum,
     strasse:m.strasse, ort:m.ort, lat:m.lat, lng:m.lng, gespeichertAm:m.gespeichertAm,
-    geaendertAm:m.geaendertAm||null, fotoAnzahl:fotos.length, behoben:!!m.behoben, behobenAm:m.behobenAm||null};
+    geaendertAm:m.geaendertAm||null, fotoAnzahl:fotos.length, behoben:!!m.behoben, behobenAm:m.behobenAm||null,
+    kritisch:!!m.kritisch};
   await speicherSetzen('mangelindex:'+m.id, meta);
   await mangelIndexLaden();
   meldung(mangelBearbeitenAktiv ? 'Änderung wurde gespeichert' : 'Mangel wurde gespeichert');
@@ -1121,9 +1103,6 @@ async function mangelSpeichern(){
   zeige(ziel);
 }
 
-/* =====================================================
-   Schritt 2, der Fragenkatalog
-   ===================================================== */
 function zeichneFragen(){
   fortschrittZeigen(true);
   let html = `<h2>Fragenkatalog</h2>`;
@@ -1141,7 +1120,6 @@ function zeichneFragen(){
   fortschrittAktualisieren();
 }
 
-// der Inhalt einer einzelnen Fragekarte, wird auch einzeln neu gezeichnet
 function frageInhalt(f){
   const a = besuch.antworten[f.nr] || {};
   if(f.typ === 'text'){
@@ -1192,13 +1170,12 @@ function antwortHolen(nr){
 }
 function bewerten(nr, wert){
   const a = antwortHolen(nr);
-  a.wert = (a.wert===wert) ? null : wert; // nochmal tippen nimmt die Bewertung zurueck
+  a.wert = (a.wert===wert) ? null : wert;
   frageNeuZeichnen(nr);
   fortschrittAktualisieren();
 }
 function kommentarSetzen(nr, text){ antwortHolen(nr).kommentar = text; }
 
-// die freie Anmerkung am Ende, kein Ja Nein, nur ein Schalter und ein Textfeld
 function freitextHolen(nr){
   if(!besuch.antworten[nr]) besuch.antworten[nr] = {ausgefuellt:false, text:''};
   return besuch.antworten[nr];
@@ -1210,9 +1187,6 @@ function freitextUmschalten(nr, an){
 }
 function freitextSetzen(nr, text){ freitextHolen(nr).text = text; }
 
-
-
-// ---------- Fotos, aus Kamera oder Galerie ----------
 function fotoAnfordern(nr, quelle){
   aktuelleFotoFrage = nr;
   mangelFotoAktiv = false;
@@ -1226,7 +1200,6 @@ function mangelFotoAnfordern(quelle){
 }
 function mangelFotoEntfernen(i){ mangelEntwurf.fotos.splice(i,1); zeichneMangel(); }
 
-// das Bild wird verkleinert damit der Speicher nicht platzt
 function fotoVerarbeiten(datei){
   if(!datei || (!mangelFotoAktiv && aktuelleFotoFrage===null)) return;
   const leser = new FileReader();
@@ -1258,9 +1231,6 @@ function fotoVerarbeiten(datei){
 document.getElementById('fotoKamera').addEventListener('change', e=>{ fotoVerarbeiten(e.target.files[0]); e.target.value=''; });
 document.getElementById('fotoGalerie').addEventListener('change', e=>{ fotoVerarbeiten(e.target.files[0]); e.target.value=''; });
 
-/* =====================================================
-   Schritt 3, Auswertung und Speichern
-   ===================================================== */
 function zeichneAbschluss(){
   fortschrittZeigen(true); fortschrittAktualisieren();
   const s = statusRechnen(besuch);
@@ -1303,28 +1273,25 @@ function zeichneAbschluss(){
 
 async function besuchSpeichern(){
   const s = statusRechnen(besuch);
-  // bei reiner Adresseingabe fehlen noch Koordinaten, hier automatisch nachschlagen,
-  // damit auch der Besuch als Punkt auf der Übersichtskarte erscheint
   if(!besuch.lat || !besuch.lng){
     meldung('Standort wird ermittelt …');
     await adresseZuKoordinaten(besuch);
   }
-  besuch.gespeichertAm = new Date().toISOString();
-  // Fotos einzeln separat speichern, sonst wird ein Besuch mit mehreren Fotos
-  // schnell zu groß fuer ein einzelnes Firestore Dokument, das Limit liegt bei 1 MB
+  const jetztBesuch = new Date().toISOString();
+  if(!besuch.gespeichertAm) besuch.gespeichertAm = jetztBesuch;
+  if(besuch.revision > 1) besuch.geaendertAm = jetztBesuch;
   const besuchZumSpeichern = JSON.parse(JSON.stringify(besuch));
   for(const nr in besuchZumSpeichern.antworten){
     const a = besuchZumSpeichern.antworten[nr];
     if(a && a.foto){
       await speicherSetzen('besuchfoto:'+besuch.id+':'+nr, {daten:a.foto}, true);
-      a.foto = true; // nur ein Merker, das Bild selbst liegt jetzt separat
+      a.foto = true;
     }
   }
   await speicherSetzen('besuch:'+besuch.id, besuchZumSpeichern, true);
-  // die Kurzinfo bekommt einen eigenen kleinen Schluessel statt einer gemeinsamen Liste
   const meta = {id:besuch.id, kennung:besuch.kennung, firma:besuch.firma, pruefer:besuch.pruefer,
     subunternehmer:besuch.subunternehmer, datum:besuch.datum, revision:besuch.revision, klasse:s.klasse, status:s.status,
-    lat:besuch.lat, lng:besuch.lng, gespeichertAm:besuch.gespeichertAm};
+    lat:besuch.lat, lng:besuch.lng, gespeichertAm:besuch.gespeichertAm, geaendertAm:besuch.geaendertAm||null};
   await speicherSetzen('index:'+besuch.id, meta, true);
   await indexAlleLaden();
   meldung('Besuch wurde als Logeintrag gespeichert, Revisionsstand V'+besuch.revision);
@@ -1332,10 +1299,22 @@ async function besuchSpeichern(){
   zeige('logbuch');
 }
 
-/* =====================================================
-   Logbuch, gespeicherte Besuche
-   ===================================================== */
-let logTyp = 'alle'; // 'alle', 'besuche' oder 'maengel'
+let logTyp = 'alle';
+let filterOffen = {};
+function filterKlappen(id){
+  filterOffen[id] = !filterOffen[id];
+  const inhalt = document.getElementById('filterInhalt_'+id);
+  const pfeil = document.getElementById('filterPfeil_'+id);
+  if(inhalt) inhalt.classList.toggle('versteckt', !filterOffen[id]);
+  if(pfeil) pfeil.textContent = filterOffen[id] ? '▾ Einklappen' : '▸ Filter anzeigen';
+}
+function filterKopfHtml(id, titel){
+  return `<div class="eyebrow" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center" onclick="filterKlappen('${id}')">
+    <span>${esc(titel)}</span>
+    <span id="filterPfeil_${id}" style="color:var(--amber); font-weight:600; font-size:12px">${filterOffen[id] ? '▾ Einklappen' : '▸ Filter anzeigen'}</span>
+  </div>`;
+}
+
 let logFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
 let logAlleFilter = {typ:'', kennung:'', firma:'', subunternehmer:'', pruefer:'', kategorie:'', status:'', von:'', bis:''};
 let logMangelFilter = {kategorie:'', firma:'', subunternehmer:'', eintrager:'', status:'', von:'', bis:''};
@@ -1348,11 +1327,13 @@ function zeichneLogbuch(){
       <button id="logTabBesuche" onclick="logTypWechsel('besuche')">Besuche</button>
       <button id="logTabMaengel" onclick="logTypWechsel('maengel')">Mängel</button>
     </div>
-    <button class="btn btn-leise" style="margin-bottom:14px" onclick="geloeschteExportieren()">Gelöschte Einträge als CSV</button>
     <div class="farb-legende">
       <span><span class="legende-punkt" style="background:#FFB020"></span>Baustellenbesuch</span>
       <span><span class="legende-punkt" style="background:#FF8A3D"></span>offener Mangel</span>
       <span><span class="legende-punkt" style="background:#3FB966"></span>behobener Mangel</span>
+    </div>
+    <div style="text-align:right; margin:2px 0 10px">
+      <a href="#" onclick="geloeschteExportieren();return false;" style="font-size:11px; color:var(--schrift2); text-decoration:underline">Gelöschte Einträge als CSV</a>
     </div>
     <div id="logbuchInhalt"></div>`;
   ['logTabAlle','logTabBesuche','logTabMaengel'].forEach(id=>document.getElementById(id).classList.remove('aktiv'));
@@ -1363,33 +1344,28 @@ function zeichneLogbuch(){
 }
 function logTypWechsel(t){ logTyp = t; zeichneLogbuch(); }
 
-// Reiter Alle, Besuche und Mängel gemeinsam, chronologisch, mit Kennzeichnung je Zeile
-// gemeinsame Hilfen fuer die Logbuch Reiter
-// Mangel Status als Text, entweder behoben oder offen
 function mangelStatusText(e){ return e.behoben ? 'Behoben' : 'Offen'; }
 function mangelPunktFarbe(e){ return e.behoben ? '#3FB966' : '#FF8A3D'; }
 
-// eine Besuchskarte mit kleinem PDF Symbol rechts
 function besuchKarteHtml(e){
   return `<div class="log-karte-reihe">
     <button class="log-karte" onclick="eintragOeffnen('${e.id}')">
       <div class="log-punkt" style="background:#FFB020"></div>
       <div class="log-info">
         <div class="k">${esc(e.kennung)}</div>
-        <div class="d">${esc(e.firma||'ohne Firma')}${e.subunternehmer && e.subunternehmer!==e.firma ? ', Sub '+esc(e.subunternehmer) : ''}, ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}</div>
+        <div class="d">${esc(e.firma||'ohne Firma')}${e.subunternehmer && e.subunternehmer!==e.firma ? ', Sub '+esc(e.subunternehmer) : ''}, erstellt ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}, ${esc(e.status)}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
       </div>
       <div class="log-rev">V${e.revision}</div>
     </button>
     <button class="pdf-knopf" title="Bericht als PDF" onclick="besuchDirektDrucken('${e.id}')">📄</button>
   </div>`;
 }
-// eine Mangelkarte mit PDF Symbol und, falls noch offen, einem Behoben Knopf
 function mangelKarteHtml(e, herkunft){
   return `<div class="log-karte-reihe">
     <button class="log-karte" onclick="mangelOeffnen('${e.id}','${herkunft}')">
       <div class="log-punkt" style="background:${mangelPunktFarbe(e)}"></div>
       <div class="log-info">
-        <div class="k">${esc(e.kategorie||'Mangel')}${e.behoben ? '<span class="behoben-marke">Behoben</span>' : ''}</div>
+        <div class="k">${esc(e.kategorie||'Mangel')}${e.kritisch ? '<span class="behoben-marke" style="color:var(--nein);border-color:var(--nein)">Kritisch</span>' : ''}${e.behoben ? '<span class="behoben-marke">Behoben</span>' : ''}</div>
         <div class="d">${esc(e.firma||'ohne Firma')}${e.subunternehmer && e.subunternehmer!==e.firma ? ', Sub '+esc(e.subunternehmer) : ''}, erfasst ${datumSchoen(e.datum)}${zeitSchoen(e.gespeichertAm) ? ', '+zeitSchoen(e.gespeichertAm)+' Uhr' : ''}${e.ort ? ', '+esc(e.ort) : ''}${e.eintrager ? ', Eintragung '+esc(e.eintrager) : ''}${e.geaendertAm ? '<br>geändert '+datumSchoen(e.geaendertAm.slice(0,10))+', '+zeitSchoen(e.geaendertAm)+' Uhr' : ''}</div>
       </div>
     </button>
@@ -1428,8 +1404,8 @@ function zeichneLogbuchAlle(){
 
   document.getElementById('logbuchInhalt').innerHTML = `
     <div class="karte-box">
-      <div class="eyebrow">Filter</div>
-      <div class="filter-box">
+      ${filterKopfHtml('logAlle','Filter')}
+      <div class="filter-box ${filterOffen.logAlle?'':'versteckt'}" id="filterInhalt_logAlle">
         <div><label>Typ</label>
           <select onchange="logAlleFilter.typ=this.value; zeichneLogbuchAlle()">
             <option value="">Alle</option>
@@ -1481,7 +1457,6 @@ function logAlleFilterZuruecksetzen(){
   zeichneLogbuchAlle();
 }
 
-// Reiter Besuche, voller Filtersatz
 function zeichneLogbuchBesuche(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
   const firmen = filterOptionen(stammdaten.firmen, logIndex, 'firma');
@@ -1502,8 +1477,8 @@ function zeichneLogbuchBesuche(){
   });
 
   let html = `<div class="karte-box">
-      <div class="eyebrow">Filter</div>
-      <div class="filter-box">
+      ${filterKopfHtml('logBesuche','Filter')}
+      <div class="filter-box ${filterOffen.logBesuche?'':'versteckt'}" id="filterInhalt_logBesuche">
         <div><label>Projektkenner</label>
           <select onchange="logFilter.kennung=this.value; zeichneLogbuchBesuche()">
             <option value="">Alle</option>
@@ -1551,7 +1526,6 @@ function logFilterZuruecksetzen(){
   zeichneLogbuchBesuche();
 }
 
-// Reiter Mängel, voller Filtersatz, PDF Liste und CSV Export je Filter
 function zeichneLogbuchMaengel(){
   const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
   const subunternehmer = filterOptionen(stammdaten.subunternehmer, mangelIndex, 'subunternehmer');
@@ -1570,11 +1544,12 @@ function zeichneLogbuchMaengel(){
   });
   const offen = gefiltert.filter(e=>!e.behoben).length;
   const behoben = gefiltert.filter(e=>e.behoben).length;
+  const kritisch = gefiltert.filter(e=>e.kritisch).length;
 
   document.getElementById('logbuchInhalt').innerHTML = `
     <div class="karte-box">
-      <div class="eyebrow">Filter</div>
-      <div class="filter-box">
+      ${filterKopfHtml('logMangel','Filter')}
+      <div class="filter-box ${filterOffen.logMangel?'':'versteckt'}" id="filterInhalt_logMangel">
         <div><label>Kategorie</label>
           <select onchange="logMangelFilter.kategorie=this.value; zeichneLogbuchMaengel()">
             <option value="">Alle</option>
@@ -1610,6 +1585,7 @@ function zeichneLogbuchMaengel(){
     <div class="statistik">
       <div class="karte-box"><div class="zahl" style="color:var(--sicher)">${offen}</div><div class="klein">offen</div></div>
       <div class="karte-box"><div class="zahl" style="color:var(--ja)">${behoben}</div><div class="klein">behoben</div></div>
+      <div class="karte-box"><div class="zahl rot">${kritisch}</div><div class="klein">kritisch</div></div>
     </div>
     <button class="btn btn-amber" onclick="maengellisteDrucken()">Mängelliste als PDF, ${gefiltert.length} Einträge</button>
     <button class="btn btn-leise" onclick="maengelExportieren()">Diese Auswahl als CSV, ${gefiltert.length} Einträge</button>
@@ -1620,7 +1596,6 @@ function logMangelFilterZuruecksetzen(){
   zeichneLogbuchMaengel();
 }
 
-// Mangel als behoben markieren, mit Bestaetigungsfenster davor
 function mangelBehobenAnfragen(id){
   const e = mangelIndex.find(x=>x.id===id);
   bestaetigung('Mangel als behoben markieren',
@@ -1645,8 +1620,6 @@ async function mangelAlsBehoben(id){
   zeige(aktuellerScreen);
 }
 
-// Mangel wieder öffnen, mit Bestaetigungsfenster davor, falls die Behoben Markierung
-// zu frueh gesetzt wurde oder der Mangel doch nicht vollstaendig erledigt ist
 function mangelWiederOeffnenAnfragen(id){
   const e = mangelIndex.find(x=>x.id===id);
   bestaetigung('Mangel wieder öffnen',
@@ -1671,7 +1644,6 @@ async function mangelWiederOeffnen(id){
   zeige(aktuellerScreen);
 }
 
-// direkter PDF Bericht aus dem Logbuch heraus, ohne den Eintrag erst zu oeffnen
 async function besuchDirektDrucken(id){
   const b = await speicherHolen('besuch:'+id, true);
   if(!b){ meldung('Eintrag konnte nicht geladen werden'); return; }
@@ -1691,8 +1663,6 @@ async function mangelDirektDrucken(id){
   mangelDrucken(m);
 }
 
-// baut aus den gerade gefilterten Mängeln eine druckbare Liste, dafuer werden die
-// vollen Datensaetze inklusive Foto nachgeladen, gedacht zum Aushaendigen an Dienstleister
 async function maengellisteDrucken(){
   const gefiltert = mangelIndex.filter(e=>{
     if(logMangelFilter.kategorie && e.kategorie!==logMangelFilter.kategorie) return false;
@@ -1733,11 +1703,8 @@ async function maengellisteDrucken(){
   druckStarten(bereich);
 }
 
-// baut aus dem Logbuch eine CSV Datei, die sich direkt in Excel oeffnen laesst,
-// das BOM am Anfang sorgt dafuer dass Umlaute in Excel korrekt angezeigt werden
 async function logbuchExportieren(){
   meldung('Export wird vorbereitet');
-  // nur die aktuell gefilterten Besuche exportieren, gleiche Logik wie in der Ansicht
   const auswahl = logIndex.filter(e=>{
     if(logFilter.kennung && e.kennung!==logFilter.kennung) return false;
     if(logFilter.firma && e.firma!==logFilter.firma) return false;
@@ -1776,7 +1743,6 @@ async function logbuchExportieren(){
   csvHerunterladen(zeilen, 'Besuche_Export_' + heute() + '.csv');
 }
 
-// gemeinsame Hilfe, baut aus Zeilen eine CSV Datei mit korrekten Umlauten und laedt sie herunter
 function csvFeld(wert){
   wert = String(wert ?? '');
   if(/[;"\n]/.test(wert)) wert = '"' + wert.replace(/"/g,'""') + '"';
@@ -1796,7 +1762,6 @@ function csvHerunterladen(zeilen, dateiname){
   meldung('Export wurde erstellt, in Dateien oder Downloads zu finden');
 }
 
-// CSV Export der Mängel, genau nach dem aktuellen Filter, gedacht zum Aushaendigen an den Verursacher
 async function maengelExportieren(){
   meldung('Export wird vorbereitet');
   const auswahl = mangelIndex.filter(e=>{
@@ -1821,12 +1786,10 @@ async function maengelExportieren(){
       e.fotoAnzahl??0, e.behobenAm ? datumSchoen(e.behobenAm.slice(0,10))+' '+zeitSchoen(e.behobenAm) : '',
       kommentar].map(csvFeld).join(';'));
   }
-  // Kommentar Spalte war in der Kopfzeile vergessen, hier nachtragen
   zeilen[0] = zeilen[0] + ';Kommentar';
   csvHerunterladen(zeilen, 'Maengelliste_Export_' + heute() + '.csv');
 }
 
-// CSV Export des Reiters Alle, Besuche und Mängel gemeinsam, nach aktivem Filter
 async function alleExportieren(){
   meldung('Export wird vorbereitet');
   const kombiniert = [
@@ -1861,9 +1824,6 @@ async function alleExportieren(){
   csvHerunterladen(zeilen, 'Logbuch_Alle_' + heute() + '.csv');
 }
 
-// baut aus allen jemals geloeschten Besuchen und Maengeln eine CSV Liste, unabhaengig
-// vom gerade eingestellten Reiter oder Filter, so bleibt jede Loeschung dauerhaft
-// nachvollziehbar und laesst sich jederzeit herunterladen, auch lange danach
 async function geloeschteExportieren(){
   meldung('Export wird vorbereitet');
   const schluessel = await speicherListe('geloescht:');
@@ -1900,14 +1860,10 @@ async function geloeschteExportieren(){
   meldung('Export wurde erstellt, in Dateien oder Downloads zu finden');
 }
 
-/* =====================================================
-   Auswertungen, gefilterte Übersicht über alle Besuche
-   ===================================================== */
 let ausFilter = {kennung:'', firma:'', subunternehmer:'', pruefer:'', status:'', von:'', bis:''};
-let auswertungTab = 'besuche'; // 'besuche' oder 'maengel'
+let auswertungTab = 'besuche';
 let mangelFilter = {kategorie:'', firma:'', subunternehmer:'', eintrager:'', status:'', von:'', bis:''};
 
-// Wrapper Bildschirm, zeigt oben die zwei Reiter und darunter die passende Auswertung
 async function zeichneAuswertungen(){
   document.getElementById('app').innerHTML = `
     <h2>Auswertungen</h2>
@@ -1924,7 +1880,6 @@ async function zeichneAuswertungen(){
   else await zeichneAuswertungenMaengel();
 }
 function auswertungTabWechsel(tab){ auswertungTab = tab; zeichneAuswertungen(); }
-
 
 async function zeichneAuswertungenBesuche(){
   const kennungen = filterOptionen(stammdaten.kennungen, logIndex, 'kennung');
@@ -1949,8 +1904,8 @@ async function zeichneAuswertungenBesuche(){
 
   document.getElementById('auswertungInhalt').innerHTML = `
     <div class="karte-box">
-      <div class="eyebrow">Filter</div>
-      <div class="filter-box">
+      ${filterKopfHtml('ausBesuche','Filter')}
+      <div class="filter-box ${filterOffen.ausBesuche?'':'versteckt'}" id="filterInhalt_ausBesuche">
         <div><label>Projektkenner</label>
           <select onchange="ausFilter.kennung=this.value; zeichneAuswertungenBesuche()">
             <option value="">Alle</option>
@@ -2002,15 +1957,13 @@ async function zeichneAuswertungenBesuche(){
         <div class="log-rev">V${e.revision}</div>
       </button>`).join('') : '<div class="leer-hinweis">Kein Besuch passt zu diesen Filtern</div>'}`;
 
-  // die vollen Besuchsdaten werden erst jetzt nachgeladen, dafuer braucht es die einzelnen
-  // Antworten je Frage, die im leichten Index nicht enthalten sind
   const volleBesuche = [];
   for(const e of gefiltert){
     const b = await speicherHolen('besuch:'+e.id);
     if(b) volleBesuche.push(b);
   }
   const diagrammBox = document.getElementById('diagrammBox');
-  if(!diagrammBox) return; // Person hat inzwischen die Seite gewechselt
+  if(!diagrammBox) return;
   const kategorieDaten = kategorieDatenBauen(volleBesuche);
   const monatsDaten = monatsDatenBauen(volleBesuche);
   let ja=0, nein=0;
@@ -2019,6 +1972,7 @@ async function zeichneAuswertungenBesuche(){
 
   diagrammBox.innerHTML = `
     <div class="eyebrow">Ergebnis je Fragekategorie</div>
+    <div class="hinweis" style="margin:2px 0 10px">Ziel ist 100%, das entspricht der vollen Balkenlänge, also alle Fragen dieser Kategorie mit Ja beantwortet. Der farbige Anteil zeigt, was anhand der aktuell eingestellten Filter tatsächlich erreicht wurde.</div>
     ${kategorieChartSvg(kategorieDaten)}
     <div class="eyebrow" style="margin-top:18px">Besuche je Monat</div>
     ${monatsDaten.length ? balkenAnzahlSvg(monatsDaten) : '<div class="hinweis">Keine Daten im gewählten Zeitraum</div>'}
@@ -2026,10 +1980,6 @@ async function zeichneAuswertungenBesuche(){
     ${monatsDaten.length ? trendLinienSvg(monatsDaten) : '<div class="hinweis">Keine Daten im gewählten Zeitraum</div>'}`;
 }
 
-/* =====================================================
-   Mängelauswertung, zweiter Reiter, bewusst mit Tailwind
-   Klassen gebaut statt den eigenen Klassen weiter oben
-   ===================================================== */
 async function zeichneAuswertungenMaengel(){
   const firmen = filterOptionen(stammdaten.firmen, mangelIndex, 'firma');
   const subunternehmer = filterOptionen(stammdaten.subunternehmer, mangelIndex, 'subunternehmer');
@@ -2047,6 +1997,7 @@ async function zeichneAuswertungenMaengel(){
 
   const offen = gefiltert.filter(e=>!e.behoben).length;
   const behoben = gefiltert.filter(e=>e.behoben).length;
+  const kritisch = gefiltert.filter(e=>e.kritisch).length;
   const kategorieZaehlung = stammdaten.kategorien.map(k=>({
     name:k, farbe:MANGEL_FARBEN[k]||'#FFB020', anzahl: gefiltert.filter(e=>e.kategorie===k).length
   }));
@@ -2061,8 +2012,11 @@ async function zeichneAuswertungenMaengel(){
 
   document.getElementById('auswertungInhalt').innerHTML = `
     <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-3">
-      <div class="text-xs font-semibold tracking-wide text-zinc-500 uppercase mb-2">Filter</div>
-      <div class="grid grid-cols-2 gap-x-3">
+      <div class="text-xs font-semibold tracking-wide text-zinc-500 uppercase mb-2 flex justify-between items-center" style="cursor:pointer" onclick="filterKlappen('ausMangel')">
+        <span>Filter</span>
+        <span id="filterPfeil_ausMangel" class="text-amber-400 normal-case">${filterOffen.ausMangel ? '▾ Einklappen' : '▸ Filter anzeigen'}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-x-3 ${filterOffen.ausMangel?'':'versteckt'}" id="filterInhalt_ausMangel">
         <div>
           <label class="block text-xs text-zinc-500 mt-2 mb-1">Kategorie</label>
           <select class="w-full bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 px-3 py-2.5 text-base"
@@ -2132,6 +2086,10 @@ async function zeichneAuswertungenMaengel(){
         <div class="text-2xl font-bold" style="font-family:'Barlow Semi Condensed',sans-serif; color:#3FB966">${behoben}</div>
         <div class="text-[11px] text-zinc-500 mt-1">behoben</div>
       </div>
+      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-center flex-1 min-w-[70px]">
+        <div class="text-2xl font-bold" style="font-family:'Barlow Semi Condensed',sans-serif; color:#E5484D">${kritisch}</div>
+        <div class="text-[11px] text-zinc-500 mt-1">kritisch</div>
+      </div>
     </div>
 
     <button class="w-full py-3 rounded-xl bg-amber-400 text-zinc-900 font-bold text-sm mb-2" onclick="maengelAusExportieren()">Diese Auswahl als CSV, ${gefiltert.length} Einträge</button>
@@ -2161,7 +2119,6 @@ async function zeichneAuswertungenMaengel(){
     </div>`;
 }
 
-// CSV Export der Mängelauswertung, exakt nach dem hier eingestellten Filter
 async function maengelAusExportieren(){
   meldung('Export wird vorbereitet');
   const auswahl = mangelIndex.filter(e=>{
@@ -2188,7 +2145,6 @@ async function maengelAusExportieren(){
   csvHerunterladen(zeilen, 'Maengelauswertung_' + heute() + '.csv');
 }
 
-// Monatszaehlung, nur die Anzahl, ohne Ja Nein Auswertung, fuer die Maengel
 function monatsZaehlungBauen(liste){
   const eimer = {};
   liste.forEach(e=>{
@@ -2201,8 +2157,6 @@ function monatsZaehlungBauen(liste){
     return {label: monatNr+'.'+jahr.slice(2), anzahl: eimer[m]};
   });
 }
-// horizontales Balkendiagramm nach reiner Anzahl, statt nach Prozent wie beim
-// Fragekatalog Diagramm, ansonsten vom Aufbau her sehr aehnlich
 function zaehlBalkenHorizontalSvg(daten){
   const balkenX = 104, balkenBreite = 150, zeilenHoehe = 32, oben = 6;
   const hoehe = oben*2 + daten.length*zeilenHoehe;
@@ -2220,8 +2174,6 @@ function zaehlBalkenHorizontalSvg(daten){
   return svg;
 }
 
-// baut die Werte fuer das Kategorie Diagramm, Anteil Ja je Kategorie ueber alle
-// gefilterten Besuche zusammen
 function kategorieDatenBauen(volleBesuche){
   const kurzname = {
     'Arbeitssicherheit':'Sicherheit',
@@ -2243,7 +2195,6 @@ function kategorieDatenBauen(volleBesuche){
     return {name:kurzname[kat.name]||kat.name, farbe:kat.farbe, prozent: ges ? Math.round(ja/ges*100) : null};
   });
 }
-// baut Monatswerte, Anzahl Besuche und durchschnittliche Ja Quote je Monat
 function monatsDatenBauen(volleBesuche){
   const eimer = {};
   volleBesuche.forEach(b=>{
@@ -2263,13 +2214,14 @@ function monatsDatenBauen(volleBesuche){
       prozent: beantwortet ? Math.round(e.ja/beantwortet*100) : null};
   });
 }
-// einfache eigene SVG Diagramme, ohne externe Bibliothek, damit nichts blockiert werden kann
 function kategorieChartSvg(daten){
   const balkenX = 104, balkenBreite = 150, zeilenHoehe = 32, oben = 6;
-  const hoehe = oben*2 + daten.length*zeilenHoehe;
+  const hoehe = oben*2 + daten.length*zeilenHoehe + 14;
   let svg = `<svg viewBox="0 0 300 ${hoehe}" width="100%" style="display:block">`;
+  svg += `<text x="${balkenX+balkenBreite}" y="10" font-size="9" fill="#5B6572" font-family="Barlow,sans-serif" text-anchor="end">Ziel 100%</text>`;
+  svg += `<line x1="${balkenX+balkenBreite}" y1="14" x2="${balkenX+balkenBreite}" y2="${hoehe-6}" stroke="#5B6572" stroke-width="1" stroke-dasharray="2,2"/>`;
   daten.forEach((d,i)=>{
-    const y = oben + i*zeilenHoehe;
+    const y = oben + 14 + i*zeilenHoehe;
     const w = d.prozent===null ? 0 : Math.round(balkenBreite * d.prozent/100);
     svg += `<text x="0" y="${y+15}" font-size="11" fill="#93A0AD" font-family="Barlow,sans-serif">${esc(d.name)}</text>`;
     svg += `<rect x="${balkenX}" y="${y+3}" width="${balkenBreite}" height="16" rx="4" fill="#242B33"/>`;
@@ -2334,7 +2286,6 @@ function ausFilterZuruecksetzen(){
 async function eintragOeffnen(id){
   const b = await speicherHolen('besuch:'+id, true);
   if(!b){ meldung('Eintrag konnte nicht geladen werden'); return; }
-  // Fotos je Frage liegen separat, hier fuer die Anzeige wieder zusammenfuehren
   for(const nr in b.antworten){
     const a = b.antworten[nr];
     if(a && a.foto === true){
@@ -2346,9 +2297,6 @@ async function eintragOeffnen(id){
   zeige('ansicht');
 }
 
-/* =====================================================
-   Mangel Ansicht, ein einzelner Mangel im Detail
-   ===================================================== */
 async function mangelOeffnen(id, herkunft){
   const m = await speicherHolen('mangel:'+id);
   if(!m){ meldung('Mangel konnte nicht geladen werden'); return; }
@@ -2357,7 +2305,6 @@ async function mangelOeffnen(id, herkunft){
   mangelAnsichtHerkunft = herkunft || 'logbuch';
   zeige('mangelAnsicht');
 }
-// laedt die einzeln gespeicherten Fotos eines Mangels wieder zusammen
 async function mangelFotosLaden(id, anzahl){
   const fotos = [];
   for(let i=0; i<(anzahl||0); i++){
@@ -2369,11 +2316,11 @@ async function mangelFotosLaden(id, anzahl){
 
 function zeichneMangelAnsicht(){
   const m = ansichtMangel;
-  const farbe = m.behoben ? '#3FB966' : '#FF8A3D';
+  const farbe = m.behoben ? '#3FB966' : (m.kritisch ? '#E5484D' : '#FF8A3D');
   document.getElementById('app').innerHTML = `
     <h2>${esc(m.kategorie || 'Mangel')}</h2>
     <div class="status-karte" style="border-color:${farbe}; background:#1c2127; color:${farbe}">
-      <div class="titel">${m.behoben ? 'Behoben' : 'Offen'}${m.kategorie ? ', '+esc(m.kategorie) : ''}</div>
+      <div class="titel">${m.behoben ? 'Behoben' : 'Offen'}${m.kategorie ? ', '+esc(m.kategorie) : ''}${m.kritisch ? ', KRITISCH' : ''}</div>
       <div class="unter">${esc(m.firma || 'ohne Firma')}${m.subunternehmer && m.subunternehmer!==m.firma ? ', Sub '+esc(m.subunternehmer) : ''}, erfasst ${datumSchoen(m.datum)}${zeitSchoen(m.gespeichertAm) ? ', '+zeitSchoen(m.gespeichertAm)+' Uhr' : ''}${m.eintrager ? ', Eintragung '+esc(m.eintrager) : ''}${m.geaendertAm ? ', zuletzt geändert '+datumSchoen(m.geaendertAm.slice(0,10))+', '+zeitSchoen(m.geaendertAm)+' Uhr' : ''}${m.behoben && m.behobenAm ? ', behoben am '+datumSchoen(m.behobenAm.slice(0,10)) : ''}</div>
     </div>
     ${m.behoben ? '<button class="btn btn-leise" onclick="mangelWiederOeffnenAnfragen(ansichtMangel.id)">Mangel wieder öffnen</button>' : '<button class="btn btn-amber" onclick="mangelBehobenAnfragen(ansichtMangel.id)">Als behoben markieren</button>'}
@@ -2390,7 +2337,7 @@ function zeichneMangelAnsicht(){
     <div class="karte-box">
       <div class="eyebrow">Fotos${m.fotos && m.fotos.length ? ', '+m.fotos.length : ''}</div>
       ${(m.fotos && m.fotos.length) ? `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px">
-        ${m.fotos.map(f=>`<img src="${f}" alt="Foto" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px">`).join('')}
+        ${m.fotos.map(f=>`<img src="${f}" alt="Foto" onclick="bildGross(this.src)" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; cursor:pointer">`).join('')}
       </div>` : '<div class="hinweis">Keine Fotos hinterlegt</div>'}
     </div>
     <div class="btn-reihe">
@@ -2414,8 +2361,6 @@ function zeichneMangelAnsicht(){
   }, 60);
 }
 
-// traegt fuer einen bestehenden Mangel ohne Koordinaten den Kartenpunkt nach,
-// nuetzlich fuer Altfaelle oder wenn die Adresssuche beim Speichern nicht griff
 async function mangelStandortNachtragen(){
   const m = ansichtMangel;
   meldung('Kartenpunkt wird ermittelt …');
@@ -2443,12 +2388,10 @@ function mangelLoeschenAnfragen(){
     mangelLoeschen();
   }
 }
-// gleiches Prinzip wie beim Loeschen eines Besuchs, die Rohdaten wandern ins Archiv,
-// nur die Fotos werden entfernt, im Logbuch bleibt alles als CSV nachvollziehbar
 async function mangelLoeschen(){
   const m = ansichtMangel;
   const archivEintrag = {...m, typ:'mangel', geloeschtAm:new Date().toISOString()};
-  delete archivEintrag.fotos; // die Fotos selbst werden gleich entfernt, nur die Anzahl bleibt im Archiv
+  delete archivEintrag.fotos;
   await speicherSetzen('geloescht:mangel:'+m.id, archivEintrag);
   for(let i=0; i<(m.fotoAnzahl||0); i++){
     await speicherLoeschen('mangelfoto:'+m.id+':'+i);
@@ -2460,7 +2403,6 @@ async function mangelLoeschen(){
   zeige(mangelAnsichtHerkunft);
 }
 
-// druckt einen einzelnen Mangel mit allen Fotos, gleiche Druckvorlage wie die Mängelliste
 function mangelDrucken(m){
   meldung('PDF wird vorbereitet …');
   let bereich = document.getElementById('druckBereich');
@@ -2483,13 +2425,9 @@ function mangelDrucken(m){
   druckStarten(bereich);
 }
 
-// baut aus einem Mangel eine saubere Bildkarte und oeffnet damit, wenn moeglich,
-// direkt den Teilen Dialog des Geraets, sonst wird das Bild heruntergeladen
 async function mangelAlsBildTeilen(){
   const m = ansichtMangel;
   meldung('Bild wird vorbereitet …');
-  // liegt nur ein GPS Standort ohne Adresstext vor, wird die Adresse dazu ermittelt,
-  // damit auf dem geteilten Bild immer eine lesbare Adresse zu sehen ist
   let standortZeile = '';
   if(m.strasse || m.ort){
     standortZeile = esc([m.strasse, m.ort].filter(Boolean).join(', '));
@@ -2519,7 +2457,6 @@ async function mangelAlsBildTeilen(){
         ${m.fotos.map(f=>`<img src="${f}" style="width:180px; height:180px; object-fit:cover; border-radius:10px;">`).join('')}
       </div>` : ''}
     </div>`;
-  // warten, bis alle Fotos in der Bildkarte auch wirklich fertig geladen sind
   const bilder = [...karte.querySelectorAll('img')];
   await Promise.all(bilder.map(img => img.complete ? Promise.resolve() : new Promise(res=>{ img.onload=res; img.onerror=res; })));
   try{
@@ -2574,7 +2511,7 @@ function zeichneAnsicht(){
         <div class="frage-kopf"><div class="frage-nr">${f.nr}</div>
           <div class="frage-text">${esc(f.text)} — ${wert}
           ${a.kommentar ? `<div class="hinweis">${esc(a.kommentar)}</div>` : ''}</div></div>
-        ${a.foto ? `<div class="foto-vorschau"><img src="${a.foto}" alt="Foto zu Frage ${f.nr}"></div>` : ''}
+        ${a.foto ? `<div class="foto-vorschau"><img src="${a.foto}" alt="Foto zu Frage ${f.nr}" onclick="bildGross(this.src)" style="cursor:pointer"></div>` : ''}
       </div>`;
     });
   });
@@ -2582,7 +2519,7 @@ function zeichneAnsicht(){
     <h2>${esc(b.kennung)} <span style="color:var(--amber)">V${b.revision}</span></h2>
     <div class="status-karte st-${s.klasse}">
       <div class="titel">${esc(s.status)}</div>
-      <div class="unter">${esc(b.firma||'ohne Firma')}${b.subunternehmer && b.subunternehmer!==b.firma ? ', Sub '+esc(b.subunternehmer) : ''}, ${datumSchoen(b.datum)}, Prüfer ${esc(b.pruefer||'–')}</div>
+      <div class="unter">${esc(b.firma||'ohne Firma')}${b.subunternehmer && b.subunternehmer!==b.firma ? ', Sub '+esc(b.subunternehmer) : ''}, erstellt ${datumSchoen(b.datum)}${zeitSchoen(b.gespeichertAm) ? ', '+zeitSchoen(b.gespeichertAm)+' Uhr' : ''}, Prüfer ${esc(b.pruefer||'–')}${b.geaendertAm ? '<br>zuletzt geändert '+datumSchoen(b.geaendertAm.slice(0,10))+', '+zeitSchoen(b.geaendertAm)+' Uhr' : ''}</div>
     </div>
     ${(b.lat && b.lng) || b.strasse ? `
     <div class="karte-box">
@@ -2612,7 +2549,6 @@ function zeichneAnsicht(){
   }, 60);
 }
 
-// Bearbeiten laedt den Eintrag zurueck in den Ablauf und zaehlt die Revision hoch
 function eintragBearbeiten(){
   besuch = JSON.parse(JSON.stringify(ansichtBesuch));
   besuch.revision = (besuch.revision||1) + 1;
@@ -2620,8 +2556,6 @@ function eintragBearbeiten(){
   zeige('projekt');
 }
 
-// erst antippen bestaetigt, dann wird wirklich geloescht, statt einem confirm Fenster,
-// das in mancher Vorschau ohnehin nicht angezeigt werden kann
 let loeschBestaetigt = false;
 function loeschenAnfragen(){
   const btn = document.getElementById('loeschKnopf');
@@ -2635,17 +2569,13 @@ function loeschenAnfragen(){
     eintragLoeschen();
   }
 }
-// Loeschen entfernt den Besuch nur aus der sichtbaren Liste, die Rohdaten wandern
-// vollstaendig in ein Archiv, nur die Fotos werden dabei entfernt um Speicher zu sparen,
-// so laesst sich im Logbuch jederzeit als CSV nachvollziehen was geloescht wurde und wann,
-// damit nichts heimlich verschwinden und in Vergessenheit geraten kann
 async function eintragLoeschen(){
   const b = ansichtBesuch;
   const s = statusRechnen(b);
   const archivEintrag = JSON.parse(JSON.stringify(b));
   for(const nr in archivEintrag.antworten){
     if(archivEintrag.antworten[nr] && archivEintrag.antworten[nr].foto){
-      archivEintrag.antworten[nr].foto = true; // nur der Vermerk, das Bild selbst wird gleich entfernt
+      archivEintrag.antworten[nr].foto = true;
     }
   }
   archivEintrag.typ = 'besuch';
@@ -2665,9 +2595,6 @@ async function eintragLoeschen(){
   zeige('logbuch');
 }
 
-/* =====================================================
-   Stammdaten, Projektkenner und Firmen pflegen
-   ===================================================== */
 function zeichneStammdaten(){
   document.getElementById('app').innerHTML = `
     <h2>Stammdaten</h2>
@@ -2675,7 +2602,7 @@ function zeichneStammdaten(){
       <div class="eyebrow">Projektkenner</div>
       ${stammdaten.kennungen.map((k,i)=>`
         <div class="stamm-zeile"><span>${esc(k)}</span>
-        <button onclick="stammLoeschenAnfragen('kennungen',${i})">${stammLoeschPending==='kennungen:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        <button onclick="stammLoeschenAnfragen('kennungen',${i})">Löschen</button></div>`).join('') ||
         '<div class="hinweis">Noch keine Projektkenner angelegt</div>'}
       <div class="stamm-neu">
         <input type="text" id="neuKennung" placeholder="Neuer Projektkenner">
@@ -2686,7 +2613,7 @@ function zeichneStammdaten(){
       <div class="eyebrow">Tiefbaufirmen</div>
       ${stammdaten.firmen.map((f,i)=>`
         <div class="stamm-zeile"><span>${esc(f)}</span>
-        <button onclick="stammLoeschenAnfragen('firmen',${i})">${stammLoeschPending==='firmen:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        <button onclick="stammLoeschenAnfragen('firmen',${i})">Löschen</button></div>`).join('') ||
         '<div class="hinweis">Noch keine Firmen angelegt</div>'}
       <div class="stamm-neu">
         <input type="text" id="neuFirma" placeholder="Neue Tiefbaufirma">
@@ -2697,7 +2624,7 @@ function zeichneStammdaten(){
       <div class="eyebrow">Mangel Kategorien</div>
       ${stammdaten.kategorien.map((k,i)=>`
         <div class="stamm-zeile"><span>${esc(k)}</span>
-        <button onclick="stammLoeschenAnfragen('kategorien',${i})">${stammLoeschPending==='kategorien:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        <button onclick="stammLoeschenAnfragen('kategorien',${i})">Löschen</button></div>`).join('') ||
         '<div class="hinweis">Noch keine Kategorien angelegt</div>'}
       <div class="stamm-neu">
         <input type="text" id="neuKategorie" placeholder="Neue Kategorie">
@@ -2708,7 +2635,7 @@ function zeichneStammdaten(){
       <div class="eyebrow">Prüfer</div>
       ${stammdaten.pruefer.map((p,i)=>`
         <div class="stamm-zeile"><span>${esc(p)}</span>
-        <button onclick="stammLoeschenAnfragen('pruefer',${i})">${stammLoeschPending==='pruefer:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        <button onclick="stammLoeschenAnfragen('pruefer',${i})">Löschen</button></div>`).join('') ||
         '<div class="hinweis">Noch keine Prüfer angelegt</div>'}
       <div class="stamm-neu">
         <input type="text" id="neuPruefer" placeholder="Neuer Prüfer">
@@ -2719,7 +2646,7 @@ function zeichneStammdaten(){
       <div class="eyebrow">Subunternehmer</div>
       ${stammdaten.subunternehmer.map((s,i)=>`
         <div class="stamm-zeile"><span>${esc(s)}</span>
-        <button onclick="stammLoeschenAnfragen('subunternehmer',${i})">${stammLoeschPending==='subunternehmer:'+i?'Wirklich?':'Löschen'}</button></div>`).join('') ||
+        <button onclick="stammLoeschenAnfragen('subunternehmer',${i})">Löschen</button></div>`).join('') ||
         '<div class="hinweis">Noch keine Subunternehmer angelegt</div>'}
       <div class="stamm-neu">
         <input type="text" id="neuSubunternehmer" placeholder="Neuer Subunternehmer">
@@ -2735,32 +2662,28 @@ async function stammNeu(liste, feldId){
   await speicherSetzen('stammdaten', stammdaten, true);
   zeichneStammdaten();
 }
-// erst antippen bestaetigt, zweites Tippen auf denselben Knopf loescht wirklich
-let stammLoeschPending = null;
+const STAMM_BEZEICHNUNG = {kennungen:'Projektkenner', firmen:'Tiefbaufirma', kategorien:'Kategorie', pruefer:'Prüfer', subunternehmer:'Subunternehmer'};
 function stammLoeschenAnfragen(liste, i){
-  const key = liste+':'+i;
-  if(stammLoeschPending === key){
-    stammLoeschPending = null;
-    stammLoeschenAusfuehren(liste, i);
-  } else {
-    stammLoeschPending = key;
-    zeichneStammdaten();
-    setTimeout(()=>{ if(stammLoeschPending===key){ stammLoeschPending=null; zeichneStammdaten(); } }, 4000);
-  }
+  const wert = stammdaten[liste][i];
+  const bezeichnung = STAMM_BEZEICHNUNG[liste] || 'Eintrag';
+  bestaetigung('Aus Stammdaten entfernen?',
+    bezeichnung+' "'+wert+'" wird aus der Auswahlliste entfernt. Bereits gespeicherte Besuche oder Mängel mit diesem Wert bleiben unverändert erhalten und weiterhin filterbar, nur für neue Einträge steht der Wert dann nicht mehr zur Auswahl.',
+    'Weiter',
+    ()=>stammLoeschenZweiteWarnung(liste, i, bezeichnung, wert));
+}
+function stammLoeschenZweiteWarnung(liste, i, bezeichnung, wert){
+  bestaetigung('Letzte Sicherheitsabfrage',
+    'Bist du wirklich sicher? '+bezeichnung+' "'+wert+'" wird jetzt endgültig aus den Stammdaten gelöscht. Diese Aktion lässt sich nicht rückgängig machen.',
+    'Endgültig löschen',
+    ()=>stammLoeschenAusfuehren(liste, i));
 }
 async function stammLoeschenAusfuehren(liste, i){
   stammdaten[liste].splice(i,1);
   await speicherSetzen('stammdaten', stammdaten, true);
   zeichneStammdaten();
+  meldung('Eintrag wurde aus den Stammdaten gelöscht');
 }
 
-/* =====================================================
-   Bericht als PDF, über die Druckfunktion des Browsers,
-   das braucht keine externe Bibliothek und funktioniert
-   auch ohne Internetverbindung
-   ===================================================== */
-// wartet bis alle Bilder im Druckbereich geladen sind und startet dann erst den Druck,
-// das verhindert das lange Haengen auf dem iPhone, wenn der Druck zu frueh ausgeloest wird
 function druckStarten(bereich){
   const bilder = Array.from(bereich.querySelectorAll('img'));
   const offene = bilder.filter(img=>!img.complete);
@@ -2771,7 +2694,6 @@ function druckStarten(bereich){
     img.addEventListener('load', ()=>{ if(++fertig>=offene.length) los(); });
     img.addEventListener('error', ()=>{ if(++fertig>=offene.length) los(); });
   });
-  // Sicherheitsnetz, spaetestens nach 4 Sekunden trotzdem drucken
   setTimeout(los, 4000);
 }
 
@@ -2828,15 +2750,12 @@ function druckInhaltBauen(b){
   return html;
 }
 
-// die App Oberflaeche im Hintergrund zwischenspeichern, damit sie auch ohne
-// Internetverbindung startet, Karten und externe Bibliotheken brauchen weiterhin Internet
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('./sw.js').catch(e=>console.log('Service Worker Fehler', e));
   });
 }
 
-// los gehts
 appStart();
 </script>
 </body>
