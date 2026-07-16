@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baustellen-check-v28';
+const CACHE_NAME = 'baustellen-check-v29';
 const EIGENE_SEITE = './index.html';
 
 self.addEventListener('install', event => {
