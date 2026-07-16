@@ -1,5 +1,4 @@
-// REVISIONSSTAND, V27, Code Stand 11.07.2026
-const CACHE_NAME = 'baustellen-check-v27';
+const CACHE_NAME = 'baustellen-check-v28';
 const EIGENE_SEITE = './index.html';
 
 self.addEventListener('install', event => {
