@@ -16,26 +16,25 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
-/* ============ Grundfarben, dunkles Design ============ */
+
 :root{
-  --grund:#14171B;        /* Asphalt, Hintergrund */
-  --flaeche:#1C2127;      /* Karten und Paneele */
-  --flaeche2:#242B33;     /* Eingabefelder */
-  --linie:#2E3640;        /* feine Trennlinien */
-  --schrift:#E9ECEF;      /* Haupttext */
-  --schrift2:#93A0AD;     /* Nebentext */
-  --amber:#FFB020;        /* Baustellenwarnfarbe, Hauptakzent */
+  --grund:#14171B;        
+  --flaeche:#1C2127;      
+  --flaeche2:#242B33;     
+  --linie:#2E3640;        
+  --schrift:#E9ECEF;      
+  --schrift2:#93A0AD;     
+  --amber:#FFB020;        
   --amberdunkel:#8a5c00;
-  --ja:#3FB966;           /* Bewertung Ja */
-  --nein:#E5484D;         /* Bewertung Nein */
-  --sicher:#FF8A3D;       /* Kennzeichen sicherheitsrelevant */
+  --ja:#3FB966;           
+  --nein:#E5484D;         
+  --sicher:#FF8A3D;       
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0; background:var(--grund); color:var(--schrift);
   font-family:'Barlow',system-ui,sans-serif; font-size:16px;}
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom));}
 
-/* ============ Kopfzeile mit Warnband ============ */
 header{position:sticky; top:0; z-index:900; background:var(--grund);
   padding:calc(10px + env(safe-area-inset-top)) 16px 10px 16px;
   border-bottom:1px solid var(--linie);}
@@ -43,7 +42,7 @@ header h1{margin:0; font-family:'Barlow Semi Condensed',sans-serif; font-weight:
   font-size:20px; letter-spacing:.5px; text-transform:uppercase;}
 header h1 span{color:var(--amber);}
 .rev-tag{font-size:11px; color:var(--schrift2); margin-top:4px; font-variant-numeric:tabular-nums;}
-/* das Warnband, schwarz gelbe Schraegstreifen, unser Erkennungszeichen */
+
 .warnband{height:8px; border-radius:4px; margin-top:8px; background:
   repeating-linear-gradient(-45deg, var(--amber) 0 12px, #14171B 12px 24px);
   opacity:.35;}
@@ -55,7 +54,6 @@ header .warnband{opacity:1; background:#20262d; overflow:hidden;}
 
 main{padding:16px; max-width:720px; margin:0 auto;}
 
-/* ============ Allgemeine Bausteine ============ */
 .karte-box{background:var(--flaeche); border:1px solid var(--linie); border-radius:14px;
   padding:16px; margin-bottom:14px;}
 .eyebrow{font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase;
@@ -80,7 +78,6 @@ button:focus-visible{outline:2px solid var(--amber); outline-offset:2px;}
 .btn-reihe{display:flex; gap:10px;}
 .btn-reihe .btn{margin-top:12px;}
 
-/* ============ Untere Navigation ============ */
 nav{position:fixed; bottom:0; left:0; right:0; z-index:900; display:flex;
   background:#181C21; border-top:1px solid var(--linie);
   padding-bottom:env(safe-area-inset-bottom);}
@@ -89,7 +86,6 @@ nav button{flex:1; background:none; color:var(--schrift2); padding:12px 4px 10px
 nav button svg{width:24px; height:24px; stroke:currentColor;}
 nav button.aktiv{color:var(--amber);}
 
-/* ============ Startseite ============ */
 .gross-knopf{width:100%; padding:20px; border-radius:14px; background:var(--amber);
   color:#14171B; font-family:'Barlow Semi Condensed',sans-serif; font-size:20px; font-weight:700;
   text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px;
@@ -105,13 +101,12 @@ nav button.aktiv{color:var(--amber);}
 #startKarte{height:62vh; min-height:440px;}
 #pickKarte{height:240px;}
 #ansichtKarte{height:200px;}
-/* dunkle Kartenkacheln, ein einfacher Filtertrick */
+
 .leaflet-tile{filter:brightness(.7) invert(1) contrast(2.6) hue-rotate(195deg) saturate(.35) brightness(.72);}
 .leaflet-container{background:#20262d; font-family:'Barlow',sans-serif;}
 .leaflet-popup-content-wrapper, .leaflet-popup-tip{background:var(--flaeche); color:var(--schrift);}
 .leaflet-popup-content a{color:var(--amber);}
 
-/* ============ Standort Auswahl, drei Wege ============ */
 .tab-reihe{display:flex; gap:8px; margin-top:12px;}
 .tab-reihe button{flex:1; padding:11px 6px; border-radius:10px; background:var(--flaeche2);
   border:1px solid var(--linie); color:var(--schrift2); font-weight:600; font-size:14px;}
@@ -120,14 +115,12 @@ nav button.aktiv{color:var(--amber);}
   font-variant-numeric:tabular-nums;}
 .gps-anzeige b{color:var(--schrift);}
 
-/* ============ Suchliste Projektkenner ============ */
 .suchliste{border:1px solid var(--linie); border-radius:10px; margin-top:6px;
   max-height:200px; overflow-y:auto; background:var(--flaeche2); display:none;}
 .suchliste div{padding:12px 14px; border-bottom:1px solid var(--linie); font-size:15px;}
 .suchliste div:last-child{border-bottom:none;}
 .suchliste div:active{background:#2a2415;}
 
-/* ============ Fragenkatalog ============ */
 .kat-kopf{display:flex; align-items:center; gap:10px; margin:22px 0 10px 0;}
 .kat-kopf .balken{width:5px; height:24px; border-radius:3px;}
 .kat-kopf h3{margin:0; font-family:'Barlow Semi Condensed',sans-serif; font-size:17px;
@@ -157,7 +150,6 @@ nav button.aktiv{color:var(--amber);}
   color:#fff; border-radius:8px; padding:6px 10px; font-size:13px;}
 .frage-karte textarea{margin-top:10px; font-size:14px;}
 
-/* ============ Auswertung ============ */
 .status-karte{border-radius:14px; padding:18px; margin-bottom:14px; border:1.5px solid;}
 .status-karte .titel{font-family:'Barlow Semi Condensed',sans-serif; font-size:21px;
   font-weight:700; text-transform:uppercase; letter-spacing:.5px;}
@@ -171,7 +163,6 @@ nav button.aktiv{color:var(--amber);}
 .aus-tabelle td:last-child{text-align:right; font-variant-numeric:tabular-nums; font-weight:600;}
 .aus-tabelle tr:last-child td{border-bottom:none;}
 
-/* ============ Logbuch ============ */
 .log-karte{background:var(--flaeche); border:1px solid var(--linie); border-radius:14px;
   padding:14px; margin-bottom:12px; display:flex; gap:12px; align-items:center; width:100%;
   text-align:left; color:var(--schrift);}
@@ -184,7 +175,6 @@ nav button.aktiv{color:var(--amber);}
 .leer-hinweis{text-align:center; color:var(--schrift2); padding:40px 20px; font-size:15px;
   line-height:1.6;}
 
-/* ============ Stammdaten ============ */
 .stamm-zeile{display:flex; align-items:center; gap:10px; padding:11px 0;
   border-bottom:1px solid var(--linie); font-size:15px;}
 .stamm-zeile span{flex:1;}
@@ -271,7 +261,7 @@ nav button.aktiv{color:var(--amber);}
 
 <header>
   <h1>// Baustellen QS <span>+ Mängelerfassung</span></h1>
-  <div class="rev-tag">Version V28, Code Stand 11.07.2026</div>
+  <div class="rev-tag">Version V29, Code Stand 11.07.2026</div>
   <div class="rev-tag" id="syncStatus">Cloud Synchronisierung wird geprüft …</div>
   <div class="warnband" id="warnband"><div class="fuell" id="warnbandFuell"></div></div>
   <div class="fortschritt-text" id="fortschrittText"></div>
@@ -301,8 +291,8 @@ nav button.aktiv{color:var(--amber);}
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
 <script>
-const APP_REVISION = 'V28';
-const APP_PASSWORT = 'HIER_DEIN_PASSWORT';
+const APP_REVISION = 'V29';
+const APP_PASSWORT = 'holti';
 
 const KATEGORIEN = [
   {name:'Arbeitssicherheit', farbe:'#FF8A3D'},
